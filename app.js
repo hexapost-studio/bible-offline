@@ -4,6 +4,8 @@
 const L = window.Lib;
 const ORDER = ["ls1910", "darby", "martin", "kjv"];
 const NAMES = { ls1910: "Louis Segond (1910)", darby: "Darby", martin: "Martin (1744)", kjv: "King James Version" };
+const O = window.OnlineBibles || null; // module hybride (Bibles sous droits, en ligne)
+const isOnline = (k) => !!(O && O.targets().some((t) => t.key === k));
 const $ = (s) => document.querySelector(s);
 const reader = $("#reader"), selV = $("#version"), selCV = $("#cmpVersion"),
       selB = $("#book"), selC = $("#chapter"), search = $("#search"), pop = $("#pop"), spop = $("#spop");
@@ -54,6 +56,11 @@ async function ensureVersion(key) {
 const ensureStrong = () => loadScript("data/strong.js");
 const ensureXref = () => loadScript("data/crossref.js");
 async function ensureRead() {
+  if (isOnline(st.v)) {
+    await ensureVersion("ls1910");           // squelette de navigation (noms + nb de chapitres)
+    await O.ensureChapter(st.v, st.b, st.c);  // texte récupéré à la demande (en ligne)
+    return;
+  }
   await ensureVersion(st.v);
   if (isKJV()) await ensureStrong();
 }
@@ -76,6 +83,20 @@ function applySettings() {
 
 /* ---------- sélecteurs ---------- */
 for (const k of ORDER) { selV.add(new Option(NAMES[k], k)); selCV.add(new Option(NAMES[k], k)); }
+function rebuildOnlineOptions() {
+  [...selV.options].filter((o) => o.value === "__sep" || isOnline(o.value)).forEach((o) => o.remove());
+  if (!O) return;
+  const sep = new Option("— En ligne (API.Bible) —", "__sep"); sep.disabled = true; selV.add(sep);
+  for (const t of O.targets()) {
+    const opt = new Option(`${t.name} (${t.abbr})`, t.key);
+    opt.disabled = !O.isEnabled(t.key);
+    opt.title = O.isEnabled(t.key) ? "Version en ligne" : "Nécessite une clé API.Bible / autorisation de l'éditeur";
+    selV.add(opt);
+  }
+  if ([...selV.options].some((o) => o.value === st.v && !o.disabled)) selV.value = st.v;
+}
+rebuildOnlineOptions();
+if (isOnline(st.v) && !(O && O.isEnabled(st.v))) st.v = "ls1910";
 selV.value = st.v; selCV.value = st.cv;
 const fillBooks = () => { selB.innerHTML = ""; bible().books.forEach((bk, i) => selB.add(new Option(bk.n, i))); selB.value = st.b; };
 const fillChapters = () => { selC.innerHTML = ""; const n = bible().books[st.b].c.length; for (let i = 0; i < n; i++) selC.add(new Option("Chapitre " + (i + 1), i)); selC.value = st.c; };
@@ -112,8 +133,11 @@ function render() {
   if (st.cmp) { renderCompare(); save(); return; }
   pushHistory(st.b, st.c);
   const bk = bible().books[st.b], ch = bk.c[st.c];
-  const tag = isKJV() ? '<span class="pill">interlinéaire Strong</span>' : `<span class="pill">${esc(bible().name)}</span>`;
+  const online = bible().online;
+  const tag = isKJV() ? '<span class="pill">interlinéaire Strong</span>'
+    : `<span class="pill">${esc(bible().name)}${online ? " · 🌐 en ligne" : ""}</span>`;
   let h = `<h2 class="title">${esc(bk.n)} ${st.c + 1} ${tag}</h2>`;
+  if (online && bible().copyright) h += `<p class="lead small">${esc(bible().copyright.replace(/<[^>]+>/g, "").trim())}</p>`;
   h += `<div class="audio-bar"><button id="play" aria-label="Lire le chapitre à voix haute">🔊 Écouter</button></div>`;
   h += `<div class="chapter-body">`;
   for (const vs of ch)
@@ -388,6 +412,12 @@ function showSettings() {
   h += seg("font", "Police de lecture", [{ v: "serif", t: "Serif" }, { v: "sans", t: "Sans" }], SET.font || "serif");
   h += seg("size", "Taille du texte", [{ v: 16, t: "A−" }, { v: 19, t: "A" }, { v: 22, t: "A+" }, { v: 26, t: "A++" }], SET.size || 19);
   h += seg("leading", "Interligne", [{ v: 1.5, t: "Serré" }, { v: 1.75, t: "Normal" }, { v: 2.1, t: "Aéré" }], SET.leading || 1.75);
+  if (O) h += `<div class="section-label">Versions en ligne (API.Bible)</div>
+    <p class="small muted">Active S21 / Semeur / Jérusalem (sous droits, <b>en ligne uniquement</b>, non stockées). <a href="https://scripture.api.bible" target="_blank" rel="noopener">Obtenir une clé</a>. Les versions indisponibles restent grisées.</p>
+    <div class="toolbar"><label class="visually-hidden" for="apiKey">Clé API.Bible</label>
+      <input id="apiKey" type="password" autocomplete="off" placeholder="Clé API.Bible" style="flex:1;min-width:180px" value="${O.getKey() ? "••••••••••" : ""}">
+      <button id="apiSave">Activer</button><button id="apiClear">Retirer</button></div>
+    <div id="apiStatus" class="small muted" aria-live="polite"></div>`;
   h += `<div class="section-label">Mes données</div><div class="toolbar"><button id="exp">⬇️ Exporter (.json)</button><button id="imp">⬆️ Importer</button></div>
     <p class="small muted">${Object.keys(HL).length} surlignage(s) · ${Object.keys(NOTES).length} note(s), stockés dans ce navigateur.</p>`;
   reader.innerHTML = h; reader.parentElement.scrollTop = 0; reader.focus();
@@ -395,6 +425,20 @@ function showSettings() {
     let val = el.dataset.val; if (el.dataset.set === "size" || el.dataset.set === "leading") val = parseFloat(val);
     SET[el.dataset.set] = val; saveSet(); applySettings(); showSettings();
   });
+  if (O) {
+    const status = () => { $("#apiStatus").textContent = O.getKey()
+      ? "Disponibles → " + O.targets().map((t) => `${t.abbr}: ${O.isEnabled(t.key) ? "✅" : "⛔"}`).join(" · ")
+      : "Aucune clé configurée."; };
+    status();
+    $("#apiSave").onclick = async () => {
+      const val = $("#apiKey").value.trim();
+      if (val && !/^•+$/.test(val)) O.setKey(val);
+      $("#apiStatus").textContent = "Vérification…";
+      try { await O.init(); rebuildOnlineOptions(); status(); toast("Versions en ligne mises à jour ✅"); }
+      catch (e) { $("#apiStatus").textContent = "⚠️ " + e.message; }
+    };
+    $("#apiClear").onclick = () => { O.clearKey(); rebuildOnlineOptions(); status(); toast("Clé retirée"); };
+  }
   $("#exp").onclick = exportData; $("#imp").onclick = () => $("#importFile").click();
 }
 function exportData() {
@@ -424,10 +468,11 @@ selV.addEventListener("change", async () => {
   st.c = Math.min(st.c, bible().books[st.b].c.length - 1); fillChapters(); render();
 });
 selCV.addEventListener("change", async () => { st.cv = selCV.value; if (st.cmp) { if (await guard(ensureVersion(st.cv))) renderCompare(); } save(); });
-selB.addEventListener("change", () => { st.b = +selB.value; st.c = 0; fillChapters(); render(); });
-selC.addEventListener("change", () => { st.c = +selC.value; render(); });
+selB.addEventListener("change", async () => { st.b = +selB.value; st.c = 0; fillChapters(); if (await guard(ensureRead())) render(); });
+selC.addEventListener("change", async () => { st.c = +selC.value; if (await guard(ensureRead())) render(); });
 $("#home").addEventListener("click", () => view === "home" ? render() : showHome());
 $("#compare").addEventListener("click", async (e) => {
+  if (isOnline(st.v)) { toast("Comparaison indisponible pour une version en ligne."); return; }
   st.cmp = !st.cmp; e.currentTarget.setAttribute("aria-pressed", st.cmp); selCV.hidden = !st.cmp;
   if (st.cmp) { if (!(await guard(ensureVersion(st.cv)))) return; }
   render();
@@ -446,6 +491,8 @@ document.addEventListener("keydown", (e) => {
 (async function init() {
   applySettings();
   $("#compare").setAttribute("aria-pressed", String(st.cmp)); selCV.hidden = !st.cmp;
+  if (O && O.getKey()) { try { await O.init(); } catch (e) { /* réseau indispo : versions en ligne grisées */ } rebuildOnlineOptions(); }
+  if (isOnline(st.v) && !(O && O.isEnabled(st.v))) { st.v = "ls1910"; selV.value = "ls1910"; }
   if (!(await guard(ensureRead(), "Chargement…"))) return;
   fillBooks(); fillChapters();
   if (st.cmp) { await guard(ensureVersion(st.cv)); }

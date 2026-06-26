@@ -40,6 +40,7 @@ Bible-Offline/
 ├── styles.css            # design system (3 thèmes, réglages de lecture)
 ├── lib.js                # logique pure, sans DOM (testée)
 ├── app.js                # application : vues, interactions, chargement à la demande
+├── data-online.js        # module hybride : Bibles sous droits via API.Bible (optionnel)
 ├── sw.js  manifest.webmanifest  icon*.png  social.png   # PWA
 ├── data/                 # données générées (voir tools/build_data.py)
 │   ├── ls1910.js darby.js martin.js kjv.js   # textes (window.BIBLES)
@@ -84,11 +85,32 @@ cibles des références croisées valides, versets du jour vérifiés).
 - **Persistance** : `localStorage` (`bible_state`, `bible_highlights`, `bible_notes`,
   `bible_history`, `bible_plan`, `bible_settings`).
 
+## 🌐 Versions en ligne (sous droits, optionnel)
+
+En plus des 4 traductions libres (hors-ligne), l'app peut afficher des versions
+**sous droits** via [API.Bible](https://scripture.api.bible) : **Segond 21**,
+**Bible du Semeur**, **Bible de Jérusalem**. Elles apparaissent dans le menu mais
+restent **grisées** tant qu'une clé valide n'est pas fournie.
+
+- **En ligne uniquement** : le texte est récupéré à la demande et mis en cache
+  **en mémoire pour la session** (jamais stocké) — conforme à la licence API.Bible.
+- **Clé** : saisie dans ⚙️ Réglages, conservée en `localStorage` **uniquement**
+  (jamais dans le dépôt).
+- **Découvrir les versions accessibles avec ta clé** :
+  ```bash
+  python3 tools/catalog.py TA_CLE          # liste les Bibles fra + statut des cibles
+  ```
+- **CORS / sécurité** : API.Bible vise un usage serveur. Pour un déploiement public,
+  renseigne un petit **proxy** (relais serverless qui ajoute l'en-tête `api-key`)
+  via `OnlineBibles.setProxy(url)` — cela évite d'exposer la clé et règle le CORS.
+- Limites : versions catholiques affichées sur les 66 livres protestants
+  (deutérocanoniques non navigués) ; pas d'interlinéaire Strong sur ces versions.
+
 ## ⚠️ Hors périmètre (raisons légales)
 
-- **Segond 21** : sous droit d'auteur → non redistribuable. Pour l'avoir hors-ligne
-  légalement, utiliser l'app **YouVersion** et télécharger la version S21.
-- **Audio** et **commentaires récents** : sous droits.
+- **Segond 21 & autres sous droits** : non redistribuables → fournies seulement via
+  le mode en ligne ci-dessus (API.Bible) ou l'app **YouVersion**.
+- **Audio narré** et **commentaires récents** : sous droits.
 
 ## 📜 Licence
 

@@ -2,11 +2,11 @@
    Précache la coquille de l'app + la traduction par défaut ; le reste
    (autres traductions, interlinéaire, Strong, réf. croisées) est mis en
    cache à la première consultation (cache-first). */
-const CACHE = "bible-offline-v2";
+const CACHE = "bible-offline-v3";
 
 const PRECACHE = [
   "./", "./index.html", "./manifest.webmanifest",
-  "./styles.css", "./lib.js", "./app.js",
+  "./styles.css", "./lib.js", "./data-online.js", "./app.js",
   "./icon.svg", "./icon-192.png", "./icon-512.png",
   "./data/ls1910.js"
 ];
