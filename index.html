@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Lecteur de Bible hors-ligne : 4 traductions, interlinéaire Strong, références croisées, notes. 100 % accessible.">
+<meta name="theme-color" content="#0f1115">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
 <title>Bible hors-ligne</title>
 <style>
   /* ---- Design tokens (Refactoring UI : palette restreinte, échelle d'espacement) ---- */
@@ -385,6 +389,11 @@ document.addEventListener("keydown",e=>{const a=document.activeElement;if(a&&(a=
 
 if(!Object.keys(B).length){reader.innerHTML='<p class="muted">Erreur : dossier <code>data/</code> introuvable.</p>';}
 else{$("#compare").setAttribute("aria-pressed",String(st.cmp));selCV.hidden=!st.cmp;fillBooks();fillChapters();render();}
+
+// Service worker : disponibilité hors-ligne (uniquement en http/https, pas en file://)
+if("serviceWorker"in navigator&&location.protocol.startsWith("http")){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
 </script>
 <style>.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}</style>
 </body>
