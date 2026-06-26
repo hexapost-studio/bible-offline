@@ -11,3 +11,11 @@ tools/*.tmp
 
 # Données perso exportées par l'utilisateur
 bible-mes-donnees.json
+
+# Node
+node_modules/
+
+# Artefacts de test navigateur (Playwright)
+.playwright-mcp/
+*-ps23.png
+home.png

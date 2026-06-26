@@ -1,0 +1,11 @@
+{
+  "name": "bible-offline",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lecteur de Bible 100 % hors-ligne : 4 traductions, interlinéaire Strong, références croisées, plan de lecture, notes.",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test",
+    "build": "python3 tools/build_data.py"
+  }
+}

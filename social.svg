@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0f1115"/>
+  <rect width="1200" height="8" fill="#8fb0ff"/>
+  <g transform="translate(150 315) scale(0.9)">
+    <rect x="-8" y="-150" width="16" height="300" rx="6" fill="#333a48"/>
+    <path d="M-8 -150 C -70 -168 -150 -160 -176 -150 L -176 150 C -150 140 -70 148 -8 150 Z" fill="#1e222b" stroke="#333a48" stroke-width="6"/>
+    <path d="M8 -150 C 70 -168 150 -160 176 -150 L 176 150 C 150 140 70 148 8 150 Z" fill="#1e222b" stroke="#333a48" stroke-width="6"/>
+    <g stroke="#8fb0ff" stroke-width="8" stroke-linecap="round" opacity="0.85">
+      <line x1="-150" y1="-96" x2="-44" y2="-100"/><line x1="-150" y1="-56" x2="-44" y2="-60"/><line x1="-150" y1="-16" x2="-44" y2="-20"/>
+      <line x1="44" y1="-100" x2="150" y2="-96"/><line x1="44" y1="-60" x2="150" y2="-56"/><line x1="44" y1="-20" x2="150" y2="-16"/>
+    </g>
+    <path d="M70 -150 L 110 -150 L 110 -40 L 90 -64 L 70 -40 Z" fill="#ffd58a"/>
+  </g>
+  <g transform="translate(420 0)" fill="#eef1f6" font-family="Georgia, 'Times New Roman', serif">
+    <text x="0" y="270" font-size="86" font-weight="800">Bible hors-ligne</text>
+    <text x="0" y="340" font-size="38" fill="#aeb6c4" font-family="-apple-system, 'Segoe UI', sans-serif">4 traductions · interlinéaire Strong · références croisées</text>
+    <text x="0" y="392" font-size="38" fill="#aeb6c4" font-family="-apple-system, 'Segoe UI', sans-serif">plan de lecture · notes · 100 % hors-ligne · accessible</text>
+  </g>
+</svg>
