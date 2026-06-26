@@ -35,7 +35,8 @@
   const setKey = (k) => { KEY = (k || "").trim(); localStorage.setItem("bible_apikey", KEY); };
   const getKey = () => KEY;
   const clearKey = () => { KEY = ""; AVAIL = {}; localStorage.removeItem("bible_apikey"); };
-  const setProxy = (p) => { PROXY = (p || "").trim(); localStorage.setItem("bible_apiproxy", PROXY); };
+  const setProxy = (p) => { PROXY = (p || "").trim().replace(/\/$/, ""); localStorage.setItem("bible_apiproxy", PROXY); };
+  const getProxy = () => PROXY;
   const targets = () => TARGETS.map((t) => ({ key: t.key, name: t.name, abbr: t.abbr }));
   const isEnabled = (key) => !!AVAIL[key];
 
@@ -112,5 +113,5 @@
     if (res.data.copyright && !b.copyright) b.copyright = res.data.copyright;
   }
 
-  root.OnlineBibles = { targets, setKey, getKey, clearKey, setProxy, init, isEnabled, ensureChapter, available: () => AVAIL };
+  root.OnlineBibles = { targets, setKey, getKey, clearKey, setProxy, getProxy, init, isEnabled, ensureChapter, available: () => AVAIL };
 })(typeof window !== "undefined" ? window : globalThis);

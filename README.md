@@ -48,6 +48,8 @@ Bible-Offline/
 │   ├── crossref.js       # références croisées (window.XREF)
 │   └── strong.js         # dictionnaire Strong héb./grec (window.STRONG)
 ├── tools/build_data.py   # régénère data/ depuis les sources (reproductible)
+├── tools/catalog.py      # liste les Bibles fr accessibles avec ta clé API.Bible
+├── proxy/                # proxy serverless Vercel pour API.Bible (clé cachée + CORS)
 ├── tests/                # node --test (logique + intégrité des données)
 ├── README.md  NORMES.md  ATTRIBUTIONS.md  LISEZ-MOI.txt
 └── package.json  LICENSE
@@ -100,9 +102,10 @@ restent **grisées** tant qu'une clé valide n'est pas fournie.
   ```bash
   python3 tools/catalog.py TA_CLE          # liste les Bibles fra + statut des cibles
   ```
-- **CORS / sécurité** : API.Bible vise un usage serveur. Pour un déploiement public,
-  renseigne un petit **proxy** (relais serverless qui ajoute l'en-tête `api-key`)
-  via `OnlineBibles.setProxy(url)` — cela évite d'exposer la clé et règle le CORS.
+- **CORS / sécurité** : API.Bible vise un usage serveur. Un **proxy serverless**
+  prêt à déployer est fourni dans [`proxy/`](proxy/) (Vercel) : il garde la clé
+  côté serveur et règle le CORS. Renseigne ensuite son URL dans ⚙️ Réglages → champ
+  **Proxy** (ou `OnlineBibles.setProxy(url)`). Voir [`proxy/README.md`](proxy/README.md).
 - Limites : versions catholiques affichées sur les 66 livres protestants
   (deutérocanoniques non navigués) ; pas d'interlinéaire Strong sur ces versions.
 

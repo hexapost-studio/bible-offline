@@ -1,0 +1,7 @@
+{
+  "name": "bible-offline-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Proxy serverless API.Bible (cache la clé + CORS) pour le lecteur Bible hors-ligne.",
+  "license": "MIT"
+}

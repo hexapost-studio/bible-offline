@@ -415,8 +415,11 @@ function showSettings() {
   if (O) h += `<div class="section-label">Versions en ligne (API.Bible)</div>
     <p class="small muted">Active S21 / Semeur / Jérusalem (sous droits, <b>en ligne uniquement</b>, non stockées). <a href="https://scripture.api.bible" target="_blank" rel="noopener">Obtenir une clé</a>. Les versions indisponibles restent grisées.</p>
     <div class="toolbar"><label class="visually-hidden" for="apiKey">Clé API.Bible</label>
-      <input id="apiKey" type="password" autocomplete="off" placeholder="Clé API.Bible" style="flex:1;min-width:180px" value="${O.getKey() ? "••••••••••" : ""}">
+      <input id="apiKey" type="password" autocomplete="off" placeholder="Clé API.Bible (ou via proxy)" style="flex:1;min-width:160px" value="${O.getKey() ? "••••••••••" : ""}">
       <button id="apiSave">Activer</button><button id="apiClear">Retirer</button></div>
+    <div class="toolbar"><label class="visually-hidden" for="apiProxy">URL du proxy</label>
+      <input id="apiProxy" type="url" autocomplete="off" placeholder="Proxy (recommandé) : https://…/api/bible" style="flex:1;min-width:160px" value="${esc(O.getProxy() || "")}"></div>
+    <p class="small muted">Le <b>proxy</b> (dossier <code>proxy/</code>, déployable sur Vercel) garde la clé côté serveur et règle le CORS — recommandé pour un usage public.</p>
     <div id="apiStatus" class="small muted" aria-live="polite"></div>`;
   h += `<div class="section-label">Mes données</div><div class="toolbar"><button id="exp">⬇️ Exporter (.json)</button><button id="imp">⬆️ Importer</button></div>
     <p class="small muted">${Object.keys(HL).length} surlignage(s) · ${Object.keys(NOTES).length} note(s), stockés dans ce navigateur.</p>`;
@@ -426,18 +429,19 @@ function showSettings() {
     SET[el.dataset.set] = val; saveSet(); applySettings(); showSettings();
   });
   if (O) {
-    const status = () => { $("#apiStatus").textContent = O.getKey()
+    const status = () => { $("#apiStatus").textContent = (O.getKey() || O.getProxy())
       ? "Disponibles → " + O.targets().map((t) => `${t.abbr}: ${O.isEnabled(t.key) ? "✅" : "⛔"}`).join(" · ")
-      : "Aucune clé configurée."; };
+      : "Aucune clé ni proxy configuré."; };
     status();
     $("#apiSave").onclick = async () => {
       const val = $("#apiKey").value.trim();
       if (val && !/^•+$/.test(val)) O.setKey(val);
+      O.setProxy($("#apiProxy").value.trim());
       $("#apiStatus").textContent = "Vérification…";
       try { await O.init(); rebuildOnlineOptions(); status(); toast("Versions en ligne mises à jour ✅"); }
       catch (e) { $("#apiStatus").textContent = "⚠️ " + e.message; }
     };
-    $("#apiClear").onclick = () => { O.clearKey(); rebuildOnlineOptions(); status(); toast("Clé retirée"); };
+    $("#apiClear").onclick = () => { O.clearKey(); O.setProxy(""); rebuildOnlineOptions(); status(); toast("Clé et proxy retirés"); };
   }
   $("#exp").onclick = exportData; $("#imp").onclick = () => $("#importFile").click();
 }
@@ -491,7 +495,7 @@ document.addEventListener("keydown", (e) => {
 (async function init() {
   applySettings();
   $("#compare").setAttribute("aria-pressed", String(st.cmp)); selCV.hidden = !st.cmp;
-  if (O && O.getKey()) { try { await O.init(); } catch (e) { /* réseau indispo : versions en ligne grisées */ } rebuildOnlineOptions(); }
+  if (O && (O.getKey() || O.getProxy())) { try { await O.init(); } catch (e) { /* réseau indispo : versions en ligne grisées */ } rebuildOnlineOptions(); }
   if (isOnline(st.v) && !(O && O.isEnabled(st.v))) { st.v = "ls1910"; selV.value = "ls1910"; }
   if (!(await guard(ensureRead(), "Chargement…"))) return;
   fillBooks(); fillChapters();
