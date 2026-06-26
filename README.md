@@ -20,12 +20,12 @@ HTML qui s'ouvre dans n'importe quel navigateur. Pensé selon une philosophie de
 
 ## 🚀 Démarrage
 
-```
-Ouvrir index.html dans un navigateur.
-```
+**En ligne (installable) :** 👉 https://hexapost-studio.github.io/bible-offline/
+Sur mobile, « Ajouter à l'écran d'accueil » l'installe comme application ; après une
+première visite, elle fonctionne **hors-ligne** (service worker).
 
-C'est tout. Aucune installation, aucun build, aucune connexion. Le dossier `data/`
-doit rester à côté de `index.html`.
+**En local :** ouvrir `index.html` dans un navigateur. Aucune installation, aucun build,
+aucune connexion. Le dossier `data/` doit rester à côté de `index.html`.
 
 ## 📁 Structure
 
