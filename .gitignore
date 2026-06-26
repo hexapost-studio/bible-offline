@@ -1,0 +1,13 @@
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Fichiers temporaires de build (sources brutes téléchargées)
+tools/*.tmp
+*.zip
+
+# Données perso exportées par l'utilisateur
+bible-mes-donnees.json

@@ -1,0 +1,39 @@
+BIBLE HORS-LIGNE
+================
+
+Lecture : double-clique sur "index.html" (s'ouvre dans le navigateur).
+Aucune connexion internet n'est jamais nécessaire.
+
+Traductions (domaine public) :
+  - Louis Segond (1910)  ← la plus proche de la Segond 21
+  - Darby
+  - Martin (1744)
+  - King James Version (anglais)
+
+Boutons (en haut à droite) :
+  ⇄  Comparer deux traductions côte à côte (versets alignés)
+  ★  Favoris : tous tes versets surlignés + tes notes
+  📚 Dictionnaire Strong : tape un numéro (G26, H157) ou un mot
+     → lemme hébreu/grec, translittération, définition, usage KJV
+  💾 Exporter / Importer tes surlignages et notes (fichier .json)
+  🌓 Thème clair / sombre
+
+Sur un verset (clic) :
+  - Couleur (jaune / vert / bleu / rose) ou ✕ pour effacer
+  - 📝  Ajouter / modifier une note
+  - 🔗  Voir les références croisées (versets liés, cliquables)
+
+Recherche : champ en haut, 3 lettres min., dans toute la traduction.
+Navigation : menus Livre/Chapitre, boutons Précédent/Suivant, flèches ← →.
+L'app retient position, surlignages, notes et réglages.
+
+Transférer sur un autre appareil :
+  1) Copie le dossier "Bible-Offline" (avec le sous-dossier "data").
+  2) Surlignages + notes : bouton 💾 → Exporter sur l'ancien appareil,
+     puis 💾 → Importer sur le nouveau.
+
+Sources : getbible.net (textes), openbible.info (références croisées, CC-BY),
+Open Scriptures (dictionnaires Strong de James Strong 1890/1894, CC-BY-SA).
+
+Pas inclus (limites légales) : la Segond 21 (sous droits — passe par
+l'app YouVersion), l'audio, et les commentaires sous droits.

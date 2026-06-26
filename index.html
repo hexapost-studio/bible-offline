@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Lecteur de Bible hors-ligne : 4 traductions, interlinéaire Strong, références croisées, notes. 100 % accessible.">
+<title>Bible hors-ligne</title>
+<style>
+  /* ---- Design tokens (Refactoring UI : palette restreinte, échelle d'espacement) ---- */
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#222734; --line:#333a48;
+    --txt:#eef1f6; --muted:#aeb6c4; --accent:#8fb0ff; --accent2:#ffd58a;
+    --verse-num:#8fb0ff;
+    --hl1:#5a4a12; --hl2:#1f4a2a; --hl3:#173a5a; --hl4:#4a1f3a; --hitmark:#5a4a12;
+    --focus:#ffd58a;
+    --sp1:4px; --sp2:8px; --sp3:12px; --sp4:16px; --sp5:24px; --radius:12px;
+  }
+  body.light{
+    --bg:#f7f8fa; --panel:#ffffff; --panel2:#eef1f5; --line:#cfd6e0;
+    --txt:#15181e; --muted:#4d5666; --accent:#1f49c0; --accent2:#9a6410;
+    --verse-num:#1f49c0;
+    --hl1:#fff1b8; --hl2:#caf0d2; --hl3:#cfe4ff; --hl4:#ffd6ef; --hitmark:#ffeaa0;
+    --focus:#1f49c0;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--txt);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;display:flex;flex-direction:column}
+  /* Visible keyboard focus everywhere (WCAG 2.4.7) */
+  :focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:6px}
+  .skip{position:absolute;left:-999px;top:0;background:var(--accent);color:#000;padding:var(--sp2) var(--sp3);border-radius:0 0 var(--radius) 0;z-index:100}
+  .skip:focus{left:0}
+
+  header{background:var(--panel);border-bottom:1px solid var(--line);padding:var(--sp2) var(--sp3);display:flex;gap:var(--sp2);align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+  .brand{font-size:16px;font-weight:700;margin:0 var(--sp1) 0 0}
+  select,button,input{font:inherit;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:var(--sp2) var(--sp3);min-height:40px}
+  select{max-width:40vw}
+  button{cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+  .spacer{flex:1}
+  #search{min-width:120px}
+  #cmpVersion[hidden]{display:none}
+  main{flex:1;overflow:auto;display:flex;justify-content:center}
+  .reader{max-width:760px;width:100%;padding:var(--sp5) var(--sp4) 96px}
+
+  h2.title{font-size:22px;font-weight:800;margin:var(--sp1) 0 var(--sp4);color:var(--accent2);line-height:1.3}
+  .pill{font-size:.78em;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 10px;white-space:nowrap;font-weight:600}
+
+  .verse{margin:0 0 var(--sp2);text-align:justify;border-radius:8px;padding:2px 6px}
+  .vn{color:var(--verse-num);font-weight:700;font-size:.74em;vertical-align:super;margin-right:var(--sp1);cursor:pointer;background:none;border:0;padding:2px 3px;min-height:auto;line-height:1}
+  .vn:hover{text-decoration:underline}
+  .note-i{margin-left:var(--sp1);font-size:.8em}
+  .hl1{background:var(--hl1)} .hl2{background:var(--hl2)} .hl3{background:var(--hl3)} .hl4{background:var(--hl4)}
+  .verse.active{outline:2px solid var(--accent)}
+  /* interlinéaire : chaque mot cliquable */
+  .w{cursor:pointer;border-radius:4px;padding:0 1px}
+  .w[data-s]:hover,.w[data-s]:focus-visible{background:var(--panel2);text-decoration:underline dotted}
+  .w.plain{cursor:default;color:var(--muted)}
+
+  nav.pager{display:flex;gap:var(--sp3);justify-content:space-between;margin-top:var(--sp5)}
+  nav.pager button{flex:1}
+
+  .results{display:flex;flex-direction:column;gap:var(--sp2);margin-top:var(--sp2)}
+  .result{padding:var(--sp3);border:1px solid var(--line);border-radius:var(--radius);cursor:pointer;background:var(--panel);text-align:left;color:inherit;width:100%}
+  .result:hover{border-color:var(--accent)}
+  .result .ref{color:var(--accent);font-weight:700;font-size:.9em;margin-bottom:2px}
+  .note-box{margin-top:var(--sp2);font-size:.92em;color:var(--muted);border-left:3px solid var(--accent2);padding-left:var(--sp2)}
+  mark{background:var(--hitmark);color:var(--txt);border-radius:3px;padding:0 2px}
+  .muted{color:var(--muted)} .small{font-size:.88em}
+  .lead{color:var(--muted);margin:var(--sp1) 0 var(--sp4)}
+
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:0 var(--sp4)}
+  .cmp .colhead{font-weight:700;color:var(--accent2);position:sticky;top:0;background:var(--bg);padding:var(--sp1) 0;border-bottom:1px solid var(--line);margin-bottom:var(--sp2)}
+  .cmpcell{padding:var(--sp1) 6px;border-bottom:1px solid var(--line)}
+
+  .entry{border:1px solid var(--line);border-radius:var(--radius);padding:var(--sp4);margin-bottom:var(--sp3);background:var(--panel)}
+  .entry .num{color:var(--accent);font-weight:800}
+  .entry .lemma{font-size:1.35em;font-weight:700;margin:0 var(--sp2)}
+  .entry .translit{color:var(--accent2);font-style:italic}
+  .entry .lbl{color:var(--muted);font-size:.8em;text-transform:uppercase;letter-spacing:.05em;margin-top:var(--sp3)}
+  .toolbar{display:flex;gap:var(--sp2);flex-wrap:wrap;margin-bottom:var(--sp3)}
+
+  /* popovers */
+  .pop{position:fixed;z-index:50;display:none;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 10px 36px rgba(0,0,0,.45)}
+  #pop{gap:6px;padding:var(--sp2);flex-wrap:wrap;max-width:264px}
+  #pop.show{display:flex}
+  #pop button{width:36px;height:36px;min-height:36px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center}
+  #pop .c1{background:var(--hl1)} #pop .c2{background:var(--hl2)} #pop .c3{background:var(--hl3)} #pop .c4{background:var(--hl4)}
+  #spop{padding:var(--sp3);max-width:320px;line-height:1.5}
+  #spop.show{display:block}
+  #spop .num{color:var(--accent);font-weight:800}
+  #spop .lemma{font-size:1.25em;font-weight:700}
+  #spop .translit{color:var(--accent2);font-style:italic}
+  #spop .more{margin-top:var(--sp2)}
+
+  footer{padding:var(--sp2) var(--sp4);border-top:1px solid var(--line);color:var(--muted);font-size:12px;text-align:center;background:var(--panel)}
+  @media (max-width:600px){ .brand{display:none} select{max-width:30vw} .cmp{font-size:.94em;gap:0 var(--sp3)} }
+  @media (prefers-reduced-motion:reduce){ *{scroll-behavior:auto!important} }
+</style>
+</head>
+<body>
+<a class="skip" href="#reader">Aller au contenu</a>
+
+<header>
+  <span class="brand" aria-hidden="true">📖 Bible</span>
+  <label class="visually-hidden" for="version">Traduction</label>
+  <select id="version" aria-label="Traduction"></select>
+  <select id="cmpVersion" aria-label="Comparer avec" hidden></select>
+  <select id="book" aria-label="Livre"></select>
+  <select id="chapter" aria-label="Chapitre"></select>
+  <span class="spacer"></span>
+  <label class="visually-hidden" for="search">Rechercher dans le texte</label>
+  <input id="search" type="search" placeholder="Rechercher…" aria-label="Rechercher dans le texte">
+  <button id="compare" aria-pressed="false" aria-label="Comparer deux traductions">⇄</button>
+  <button id="favs" aria-label="Favoris, surlignages et notes">★</button>
+  <button id="dico" aria-label="Dictionnaire Strong">📚</button>
+  <button id="backup" aria-label="Exporter ou importer mes données">💾</button>
+  <button id="theme" aria-label="Basculer le thème clair ou sombre">🌓</button>
+</header>
+
+<main id="main">
+  <article class="reader" id="reader" tabindex="-1" aria-live="polite" aria-busy="false">
+    <p class="muted">Chargement…</p>
+  </article>
+</main>
+<footer>Domaine public · 100 % hors-ligne · accessible au clavier. Clique le n° du verset pour annoter ; en KJV, clique un mot pour son sens hébreu/grec.</footer>
+
+<!-- popover annotation (couleur / note / xref) -->
+<div id="pop" class="pop" role="menu" aria-label="Actions sur le verset">
+  <button class="c1" data-a="hl" data-c="1" role="menuitem" aria-label="Surligner en jaune"></button>
+  <button class="c2" data-a="hl" data-c="2" role="menuitem" aria-label="Surligner en vert"></button>
+  <button class="c3" data-a="hl" data-c="3" role="menuitem" aria-label="Surligner en bleu"></button>
+  <button class="c4" data-a="hl" data-c="4" role="menuitem" aria-label="Surligner en rose"></button>
+  <button class="cx" data-a="hl" data-c="0" role="menuitem" aria-label="Effacer le surlignage">✕</button>
+  <button class="cm" data-a="note" role="menuitem" aria-label="Ajouter ou modifier une note">📝</button>
+  <button class="cr" data-a="xref" role="menuitem" aria-label="Références croisées">🔗</button>
+</div>
+<!-- popover Strong (interlinéaire) -->
+<div id="spop" class="pop" role="dialog" aria-label="Définition Strong"></div>
+
+<input type="file" id="importFile" accept="application/json" hidden>
+
+<script src="data/ls1910.js"></script>
+<script src="data/darby.js"></script>
+<script src="data/martin.js"></script>
+<script src="data/kjv.js"></script>
+<script src="data/kjvi.js"></script>
+<script src="data/crossref.js"></script>
+<script src="data/strong.js"></script>
+<script>
+"use strict";
+const ORDER=["ls1910","darby","martin","kjv"];
+const B=window.BIBLES||{}, XREF=window.XREF||{}, STRONG=window.STRONG||{}, KJVI=window.KJVI||{};
+const $=s=>document.querySelector(s);
+const reader=$("#reader"),selV=$("#version"),selCV=$("#cmpVersion"),selB=$("#book"),selC=$("#chapter"),search=$("#search"),pop=$("#pop"),spop=$("#spop");
+
+let st=JSON.parse(localStorage.getItem("bible_state")||"{}");
+st.v=st.v&&B[st.v]?st.v:ORDER.find(k=>B[k]);
+st.cv=st.cv&&B[st.cv]?st.cv:ORDER.filter(k=>B[k]&&k!==st.v)[0];
+st.b=Number.isInteger(st.b)?st.b:0; st.c=Number.isInteger(st.c)?st.c:0; st.cmp=!!st.cmp;
+let HL=JSON.parse(localStorage.getItem("bible_highlights")||"{}");
+let NOTES=JSON.parse(localStorage.getItem("bible_notes")||"{}");
+let view="read", popTarget=null;
+
+const save=()=>localStorage.setItem("bible_state",JSON.stringify({v:st.v,cv:st.cv,b:st.b,c:st.c,theme:st.theme,cmp:st.cmp}));
+const saveHL=()=>localStorage.setItem("bible_highlights",JSON.stringify(HL));
+const saveNotes=()=>localStorage.setItem("bible_notes",JSON.stringify(NOTES));
+const bible=()=>B[st.v];
+const esc=s=>s.replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+const keyOf=(bi,ci,v)=>bi+":"+ci+":"+v;
+const isKJV=()=>st.v==="kjv";
+const setBusy=b=>reader.setAttribute("aria-busy",b?"true":"false");
+
+if(st.theme==="light")document.body.classList.add("light");
+$("#theme").addEventListener("click",()=>{document.body.classList.toggle("light");st.theme=document.body.classList.contains("light")?"light":"dark";save();});
+
+for(const k of ORDER){ if(!B[k])continue;
+  selV.add(new Option(B[k].name,k)); selCV.add(new Option(B[k].name,k)); }
+selV.value=st.v; selCV.value=st.cv;
+
+const fillBooks=()=>{selB.innerHTML="";bible().books.forEach((bk,i)=>selB.add(new Option(bk.n,i)));selB.value=st.b;};
+const fillChapters=()=>{selC.innerHTML="";const n=bible().books[st.b].c.length;for(let i=0;i<n;i++)selC.add(new Option("Chapitre "+(i+1),i));selC.value=st.c;};
+const hlClass=(bi,ci,v)=>{const c=HL[keyOf(bi,ci,v)];return c?(" hl"+c):"";};
+const noteIcon=(bi,ci,v)=>NOTES[keyOf(bi,ci,v)]?'<span class="note-i" title="Note" aria-label="(note présente)">📝</span>':"";
+
+// rendu du texte d'un verset (interlinéaire si KJV et données dispo)
+function verseHTML(bi,ci,vs){
+  if(isKJV()){
+    const segs=KJVI[`${bi}.${ci}.${vs.v}`];
+    if(segs) return segs.map(seg=>{
+      const txt=esc(seg[0]); const s=seg[1];
+      return s&&STRONG[s]
+        ? `<span class="w" data-s="${s}" role="button" tabindex="0">${txt}</span> `
+        : `<span class="w plain">${txt}</span> `;
+    }).join("");
+  }
+  return esc(vs.t);
+}
+
+function navHtml(){return `<nav class="pager" aria-label="Navigation entre chapitres"><button id="prev">‹ Précédent</button><button id="top">↑ Haut</button><button id="next">Suivant ›</button></nav>`;}
+function wireNav(){const p=$("#prev"),n=$("#next"),t=$("#top");if(p)p.onclick=()=>step(-1);if(n)n.onclick=()=>step(1);if(t)t.onclick=()=>reader.parentElement.scrollTo({top:0,behavior:"smooth"});}
+function wireVerseInteractions(){
+  reader.querySelectorAll(".vn").forEach(el=>el.addEventListener("click",e=>{e.stopPropagation();openPop(el.closest("[data-bi]"));}));
+  reader.querySelectorAll(".w[data-s]").forEach(el=>{
+    const act=e=>{e.stopPropagation();openStrong(el);};
+    el.addEventListener("click",act);
+    el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();act(e);}});
+  });
+}
+
+function render(){
+  view="read"; search.value=""; setBusy(true);
+  if(st.cmp){ renderCompare(); save(); setBusy(false); return; }
+  const bk=bible().books[st.b], ch=bk.c[st.c];
+  const tag=isKJV()?'<span class="pill">interlinéaire Strong</span>':`<span class="pill">${esc(bible().name)}</span>`;
+  let h=`<h2 class="title">${esc(bk.n)} ${st.c+1} ${tag}</h2>`;
+  for(const vs of ch)
+    h+=`<p class="verse${hlClass(st.b,st.c,vs.v)}" data-bi="${st.b}" data-ci="${st.c}" data-v="${vs.v}" id="v${vs.v}"><button class="vn" aria-label="Annoter le verset ${vs.v}">${vs.v}</button>${verseHTML(st.b,st.c,vs)}${noteIcon(st.b,st.c,vs.v)}</p>`;
+  h+=navHtml(); reader.innerHTML=h; reader.parentElement.scrollTop=0; wireNav(); wireVerseInteractions(); save(); setBusy(false);
+}
+function renderCompare(){
+  const bL=bible().books[st.b], chL=bL.c[st.c], Br=B[st.cv], bR=Br.books[st.b], chR=bR.c[st.c];
+  const mL={},mR={}; chL.forEach(v=>mL[v.v]=v.t); chR.forEach(v=>mR[v.v]=v.t);
+  const nums=[...new Set([...chL.map(v=>v.v),...chR.map(v=>v.v)])].sort((a,b)=>a-b);
+  let h=`<h2 class="title">${esc(bL.n)} ${st.c+1} <span class="pill">comparaison</span></h2><div class="cmp"><div class="colhead">${esc(bible().name)}</div><div class="colhead">${esc(Br.name)}</div>`;
+  for(const v of nums){
+    h+=`<div class="cmpcell${hlClass(st.b,st.c,v)}"><sup class="vn" style="cursor:default">${v}</sup> ${esc(mL[v]||"—")}</div>`;
+    h+=`<div class="cmpcell${hlClass(st.b,st.c,v)}"><sup class="vn" style="cursor:default">${v}</sup> ${esc(mR[v]||"—")}</div>`;}
+  h+=`</div>`+navHtml(); reader.innerHTML=h; reader.parentElement.scrollTop=0; wireNav();
+}
+function step(d){const books=bible().books;let c=st.c+d;
+  if(c<0){if(st.b>0){st.b--;c=books[st.b].c.length-1;}else c=0;}
+  else if(c>=books[st.b].c.length){if(st.b<books.length-1){st.b++;c=0;}else c=st.c;}
+  st.c=c;selB.value=st.b;fillChapters();selC.value=st.c;render();reader.focus();}
+
+// ---- popover annotation ----
+function placePop(el,node){
+  const r=el.getBoundingClientRect(); node.classList.add("show");
+  let x=Math.min(r.left,window.innerWidth-node.offsetWidth-10), y=r.bottom+6;
+  if(y+node.offsetHeight>window.innerHeight)y=r.top-node.offsetHeight-6;
+  node.style.left=Math.max(8,x)+"px"; node.style.top=Math.max(8,y)+"px";
+}
+function openPop(verseEl){
+  popTarget={bi:+verseEl.dataset.bi,ci:+verseEl.dataset.ci,v:+verseEl.dataset.v};
+  spop.classList.remove("show"); placePop(verseEl,pop);
+  const f=pop.querySelector("button"); if(f)f.focus();
+}
+pop.querySelectorAll("button").forEach(b=>{
+  b.addEventListener("click",e=>{ e.stopPropagation(); if(!popTarget)return;
+    const t=popTarget,k=keyOf(t.bi,t.ci,t.v),a=b.dataset.a; pop.classList.remove("show");
+    if(a==="hl"){const c=+b.dataset.c;if(c===0)delete HL[k];else HL[k]=c;saveHL();refresh();}
+    else if(a==="note"){const cur=NOTES[k]||"";const txt=prompt("Note pour ce verset :",cur);
+      if(txt!==null){if(txt.trim())NOTES[k]=txt.trim();else delete NOTES[k];saveNotes();refresh();}}
+    else if(a==="xref"){showXref(t.bi,t.ci,t.v);}
+  });
+});
+function refresh(){view==="favs"?showFavs():(st.cmp?renderCompare():render());}
+
+// ---- popover Strong (interlinéaire) ----
+function openStrong(wordEl){
+  const num=wordEl.dataset.s, e=STRONG[num]; if(!e)return;
+  pop.classList.remove("show");
+  const lang=num[0]==="H"?'lang="he" dir="rtl"':'lang="grc"';
+  spop.innerHTML=`<div><span class="num">${num}</span> <span class="lemma" ${lang}>${esc(e.l||"")}</span> <span class="translit">${esc(e.t||"")}</span></div>
+    <div style="margin-top:6px">${esc(e.d||"—")}</div>
+    <div class="more"><button id="spopMore">📚 Voir dans le dictionnaire</button></div>`;
+  placePop(wordEl,spop);
+  $("#spopMore").onclick=ev=>{ev.stopPropagation();spop.classList.remove("show");showDico(num);};
+  $("#spopMore").focus();
+}
+
+document.addEventListener("click",()=>{pop.classList.remove("show");spop.classList.remove("show");});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){pop.classList.remove("show");spop.classList.remove("show");}});
+
+// ---- références croisées ----
+function showXref(bi,ci,v){
+  view="xref"; pop.classList.remove("show");
+  const bk=bible().books[bi], refs=XREF[`${bi}.${ci}.${v}`]||[];
+  let h=`<h2 class="title">🔗 Références croisées <span class="pill">${esc(bk.n)} ${ci+1}:${v}</span></h2>`;
+  const src=(bk.c[ci]||[]).find(x=>x.v===v); if(src)h+=`<p class="lead small">« ${esc(src.t)} »</p>`;
+  if(!refs.length)h+=`<p class="muted">Aucune référence croisée pour ce verset.</p>`;
+  else{ h+=`<div class="results">`;
+    for(const [rb,rc,rv] of refs){const tb=bible().books[rb];if(!tb)continue;
+      const tv=(tb.c[rc]||[]).find(x=>x.v===rv);
+      h+=`<button class="result" data-bi="${rb}" data-ci="${rc}" data-v="${rv}"><span class="ref">${esc(tb.n)} ${rc+1}:${rv}</span><span>${esc(tv?tv.t:"")}</span></button>`;}
+    h+=`</div>`;}
+  reader.innerHTML=h; reader.parentElement.scrollTop=0; reader.focus(); wireResultNav();
+}
+
+// ---- favoris / notes ----
+function showFavs(){
+  view="favs"; pop.classList.remove("show");
+  const keys=[...new Set([...Object.keys(HL),...Object.keys(NOTES)])];
+  let h=`<h2 class="title">★ Favoris, surlignages &amp; notes <span class="pill">${keys.length}</span></h2>`;
+  if(!keys.length){h+=`<p class="muted">Rien pour l'instant. Clique le n° d'un verset → couleur ou 📝.</p>`;reader.innerHTML=h;return;}
+  const items=keys.map(k=>{const[bi,ci,v]=k.split(":").map(Number);return{bi,ci,v,c:HL[k],note:NOTES[k]};}).sort((a,b)=>a.bi-b.bi||a.ci-b.ci||a.v-b.v);
+  h+=`<div class="results">`;
+  for(const it of items){const bk=bible().books[it.bi];if(!bk)continue;
+    const vs=(bk.c[it.ci]||[]).find(x=>x.v===it.v);const txt=vs?vs.t:"(introuvable)";
+    h+=`<button class="result ${it.c?"hl"+it.c:""}" data-bi="${it.bi}" data-ci="${it.ci}" data-v="${it.v}"><span class="ref">${esc(bk.n)} ${it.ci+1}:${it.v}</span><span>${esc(txt)}</span>${it.note?`<span class="note-box">📝 ${esc(it.note)}</span>`:""}</button>`;}
+  h+=`</div>`; reader.innerHTML=h; reader.parentElement.scrollTop=0; reader.focus(); wireResultNav();
+}
+function wireResultNav(){reader.querySelectorAll(".result").forEach(el=>el.addEventListener("click",()=>goTo(+el.dataset.bi,+el.dataset.ci,+el.dataset.v)));}
+function goTo(bi,ci,v){st.cmp=false;$("#compare").setAttribute("aria-pressed","false");selCV.hidden=true;
+  st.b=bi;st.c=ci;selB.value=bi;fillChapters();selC.value=ci;render();
+  const t=document.getElementById("v"+v);if(t){t.classList.add("active");t.scrollIntoView({block:"center"});}}
+
+// ---- dictionnaire Strong ----
+function showDico(q){
+  view="dico"; pop.classList.remove("show"); spop.classList.remove("show");
+  reader.innerHTML=`<h2 class="title">📚 Dictionnaire Strong</h2>
+    <div class="toolbar"><label class="visually-hidden" for="dq">Recherche Strong</label>
+      <input id="dq" placeholder="Numéro (G26, H157) ou mot…" aria-label="Recherche Strong" style="flex:1;min-width:180px" value="${q?esc(q):""}">
+      <button id="dgo">Chercher</button></div>
+    <p class="lead small">Concordance de James Strong (hébreu 1894 / grec 1890, domaine public). Tape un numéro <b>G####</b>/<b>H####</b> ou un mot.</p>
+    <div id="dres"></div>`;
+  reader.parentElement.scrollTop=0;
+  const run=()=>dicoSearch($("#dq").value);
+  $("#dgo").onclick=run; $("#dq").addEventListener("keydown",e=>{if(e.key==="Enter")run();}); $("#dq").focus();
+  if(q)dicoSearch(q);
+}
+function entryHtml(num,e){
+  const lang=num[0]==="H"?'lang="he" dir="rtl"':'lang="grc"';
+  return `<section class="entry"><div><span class="num">${num}</span> <span class="lemma" ${lang}>${esc(e.l||"")}</span> <span class="translit">${esc(e.t||"")}</span></div>
+    <div class="lbl">Définition</div><div>${esc(e.d||"—")}</div>
+    <div class="lbl">Usage (KJV)</div><div class="muted">${esc(e.k||"—")}</div></section>`;
+}
+function dicoSearch(q){
+  q=(q||"").trim();const box=$("#dres");if(!box)return;
+  if(!q){box.innerHTML="";return;}
+  const m=q.match(/^([GgHh])\s*0*(\d+)$/);
+  if(m){const num=m[1].toUpperCase()+m[2];const e=STRONG[num];
+    box.innerHTML=e?entryHtml(num,e):`<p class="muted">Aucune entrée « ${esc(num)} ».</p>`;return;}
+  const ql=q.toLowerCase(),res=[],max=60;
+  for(const num in STRONG){const e=STRONG[num];
+    if((e.t&&e.t.toLowerCase().includes(ql))||(e.l&&e.l.includes(q))||(e.d&&e.d.toLowerCase().includes(ql))||(e.k&&e.k.toLowerCase().includes(ql))){res.push([num,e]);if(res.length>=max)break;}}
+  box.innerHTML=res.length?`<p class="small muted">${res.length}${res.length>=max?"+":""} résultat(s)</p>`+res.map(([n,e])=>entryHtml(n,e)).join(""):`<p class="muted">Aucun résultat pour « ${esc(q)} ».</p>`;
+}
+
+// ---- recherche plein-texte ----
+let stimer; search.addEventListener("input",()=>{clearTimeout(stimer);stimer=setTimeout(runSearch,220);});
+function runSearch(){
+  const q=search.value.trim().toLowerCase();if(q.length<3){render();return;}
+  view="search";const books=bible().books,res=[],max=300;
+  outer:for(let bi=0;bi<books.length;bi++){const bk=books[bi];
+    for(let ci=0;ci<bk.c.length;ci++)for(const vs of bk.c[ci]){
+      if(vs.t.toLowerCase().includes(q)){res.push({bi,ci,v:vs.v,t:vs.t,ref:`${bk.n} ${ci+1}:${vs.v}`});if(res.length>=max)break outer;}}}
+  const re=new RegExp("("+q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig");
+  let h=`<h2 class="title">Recherche : « ${esc(search.value.trim())} »</h2><p class="lead">${res.length}${res.length>=max?"+":""} résultat(s) · ${esc(bible().name)}</p><div class="results">`;
+  for(const r of res)h+=`<button class="result" data-bi="${r.bi}" data-ci="${r.ci}" data-v="${r.v}"><span class="ref">${esc(r.ref)}</span><span>${esc(r.t).replace(re,"<mark>$1</mark>")}</span></button>`;
+  h+="</div>";reader.innerHTML=h;reader.parentElement.scrollTop=0;wireResultNav();
+}
+
+// ---- export / import ----
+function showBackup(){
+  view="backup"; pop.classList.remove("show");
+  const nH=Object.keys(HL).length,nN=Object.keys(NOTES).length;
+  reader.innerHTML=`<h2 class="title">💾 Mes données</h2>
+    <p class="lead">${nH} surlignage(s) · ${nN} note(s). Stocké dans ce navigateur.</p>
+    <div class="toolbar"><button id="exp">⬇️ Exporter (.json)</button><button id="imp">⬆️ Importer</button></div>
+    <p class="small muted">Exporte pour sauvegarder ou transférer vers un autre appareil.</p>`;
+  reader.parentElement.scrollTop=0;
+  $("#exp").onclick=()=>{const data={highlights:HL,notes:NOTES,exported:new Date().toISOString()};
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
+    a.download="bible-mes-donnees.json";a.click();URL.revokeObjectURL(a.href);};
+  $("#imp").onclick=()=>$("#importFile").click();
+}
+$("#importFile").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{try{const d=JSON.parse(rd.result);
+    if(d.highlights)HL=Object.assign(HL,d.highlights);if(d.notes)NOTES=Object.assign(NOTES,d.notes);
+    saveHL();saveNotes();alert("Import réussi ✅");showBackup();}catch(err){alert("Fichier invalide.");}};
+  rd.readAsText(f);e.target.value="";});
+
+// ---- contrôles ----
+selV.addEventListener("change",()=>{st.v=selV.value;if(st.v===st.cv){st.cv=ORDER.filter(k=>B[k]&&k!==st.v)[0];selCV.value=st.cv;}st.b=Math.min(st.b,bible().books.length-1);fillBooks();st.c=Math.min(st.c,bible().books[st.b].c.length-1);fillChapters();render();});
+selCV.addEventListener("change",()=>{st.cv=selCV.value;if(st.cmp)renderCompare();save();});
+selB.addEventListener("change",()=>{st.b=+selB.value;st.c=0;fillChapters();render();});
+selC.addEventListener("change",()=>{st.c=+selC.value;render();});
+$("#compare").addEventListener("click",e=>{st.cmp=!st.cmp;e.currentTarget.setAttribute("aria-pressed",st.cmp);selCV.hidden=!st.cmp;render();});
+$("#favs").addEventListener("click",()=>view==="favs"?render():showFavs());
+$("#dico").addEventListener("click",()=>view==="dico"?render():showDico());
+$("#backup").addEventListener("click",()=>view==="backup"?render():showBackup());
+document.addEventListener("keydown",e=>{const a=document.activeElement;if(a&&(a===search||a.id==="dq"||a.tagName==="INPUT"))return;if(e.key==="ArrowRight")step(1);if(e.key==="ArrowLeft")step(-1);});
+
+if(!Object.keys(B).length){reader.innerHTML='<p class="muted">Erreur : dossier <code>data/</code> introuvable.</p>';}
+else{$("#compare").setAttribute("aria-pressed",String(st.cmp));selCV.hidden=!st.cmp;fillBooks();fillChapters();render();}
+</script>
+<style>.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}</style>
+</body>
+</html>
