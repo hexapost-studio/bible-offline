@@ -118,6 +118,23 @@ function verseHTML(bi, ci, vs) {
   return esc(vs.t);
 }
 
+/* ---------- attribution & notes des versions en ligne (conformité licence) ---------- */
+function onlineAttribution(b) {
+  const parts = [];
+  const cr = (b.copyright || "").replace(/<[^>]+>/g, "").trim();
+  if (cr) parts.push(esc(cr));
+  if (b.publisher && b.publisherUrl)
+    parts.push(`<a href="${esc(b.publisherUrl)}" target="_blank" rel="noopener">${esc(b.publisher)}</a>`);
+  parts.push(`Texte fourni par <a href="https://api.bible" target="_blank" rel="noopener">API.Bible</a>`);
+  return `<p class="lead small attribution">${parts.join(" · ")}</p>`;
+}
+// Notes de bas de page (versions en ligne) — conservées et rendues accessibles, repliées par défaut.
+function verseNotes(vs) {
+  if (!vs.notes || !vs.notes.length) return "";
+  const items = vs.notes.map((n) => `<li>${esc(n)}</li>`).join("");
+  return `<details class="vnote"><summary aria-label="Notes du verset ${vs.v}">note</summary><ul>${items}</ul></details>`;
+}
+
 /* ---------- historique ---------- */
 function pushHistory(bi, ci) {
   HIST = HIST.filter((h) => !(h[0] === bi && h[1] === ci));
@@ -137,14 +154,15 @@ function render() {
   const tag = isKJV() ? '<span class="pill">interlinéaire Strong</span>'
     : `<span class="pill">${esc(bible().name)}${online ? " · 🌐 en ligne" : ""}</span>`;
   let h = `<h2 class="title">${esc(bk.n)} ${st.c + 1} ${tag}</h2>`;
-  if (online && bible().copyright) h += `<p class="lead small">${esc(bible().copyright.replace(/<[^>]+>/g, "").trim())}</p>`;
-  h += `<div class="audio-bar"><button id="play" aria-label="Lire le chapitre à voix haute">🔊 Écouter</button></div>`;
+  // Versions en ligne (sous droits) : attribution obligatoire ; lecture audio interdite (texte ≠ audio).
+  if (online) h += onlineAttribution(bible());
+  else h += `<div class="audio-bar"><button id="play" aria-label="Lire le chapitre à voix haute">🔊 Écouter</button></div>`;
   h += `<div class="chapter-body">`;
   for (const vs of ch)
-    h += `<p class="verse${hlClass(st.b, st.c, vs.v)}" data-bi="${st.b}" data-ci="${st.c}" data-v="${vs.v}" id="v${vs.v}"><button class="vn" aria-label="Annoter le verset ${vs.v}">${vs.v}</button>${verseHTML(st.b, st.c, vs)}${noteIcon(st.b, st.c, vs.v)}</p>`;
+    h += `<p class="verse${hlClass(st.b, st.c, vs.v)}" data-bi="${st.b}" data-ci="${st.c}" data-v="${vs.v}" id="v${vs.v}"><button class="vn" aria-label="Annoter le verset ${vs.v}">${vs.v}</button>${verseHTML(st.b, st.c, vs)}${verseNotes(vs)}${noteIcon(st.b, st.c, vs.v)}</p>`;
   h += `</div>` + navHtml();
   reader.innerHTML = h; reader.parentElement.scrollTop = 0;
-  wireNav(); wireVerseInteractions(); $("#play").onclick = toggleAudio; save();
+  wireNav(); wireVerseInteractions(); const play = $("#play"); if (play) play.onclick = toggleAudio; save();
 }
 function renderCompare() {
   const bL = bible().books[st.b], chL = bL.c[st.c], Br = window.BIBLES[st.cv], bR = Br.books[st.b], chR = bR.c[st.c];
@@ -186,6 +204,7 @@ function stopAudio() {
   document.querySelectorAll(".verse.speaking").forEach((e) => e.classList.remove("speaking"));
 }
 function toggleAudio() {
+  if (isOnline(st.v)) return; // texte sous droits : lecture audio interdite par la licence
   if (!("speechSynthesis" in window)) { alert("La lecture vocale n'est pas disponible sur ce navigateur."); return; }
   if (speaking) { stopAudio(); return; }
   const ch = bible().books[st.b].c[st.c];
@@ -465,9 +484,14 @@ $("#importFile").addEventListener("change", (e) => {
 
 /* ---------- contrôles ---------- */
 selV.addEventListener("change", async () => {
+  const prev = st.v;
   st.v = selV.value;
   if (st.v === st.cv) { st.cv = ORDER.find((k) => k !== st.v); selCV.value = st.cv; }
-  if (!(await guard(ensureRead(), "Chargement de la traduction…"))) return;
+  if (!(await guard(ensureRead(), "Chargement de la traduction…"))) {
+    // échec (réseau/quota sur une version en ligne) : revenir à la version précédente sans bloquer
+    if (prev !== st.v) { st.v = prev; selV.value = prev; if (await guard(ensureRead())) { fillBooks(); fillChapters(); render(); } }
+    return;
+  }
   st.b = Math.min(st.b, bible().books.length - 1); fillBooks();
   st.c = Math.min(st.c, bible().books[st.b].c.length - 1); fillChapters(); render();
 });

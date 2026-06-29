@@ -98,6 +98,16 @@ nav.pager button { flex:1; }
 .result:hover { border-color:var(--accent); }
 .result .ref { color:var(--accent); font-weight:700; font-size:.9em; margin-bottom:2px; display:block; }
 .note-box { margin-top:var(--sp2); font-size:.92em; color:var(--muted); border-left:3px solid var(--accent2); padding-left:var(--sp2); }
+/* attribution licence (versions en ligne) : copyright + lien éditeur + API.Bible */
+.attribution { border-left:3px solid var(--accent2); padding-left:var(--sp2); }
+.attribution a { color:var(--accent); }
+/* notes de bas de page conservées (versions en ligne), repliées par défaut */
+.vnote { display:inline; margin-left:4px; }
+.vnote > summary { display:inline; cursor:pointer; color:var(--accent); font-size:.7em; vertical-align:super;
+  list-style:none; padding:0 3px; border:1px solid var(--line); border-radius:4px; }
+.vnote > summary::-webkit-details-marker { display:none; }
+.vnote[open] > summary { color:var(--accent2); }
+.vnote ul { margin:var(--sp1) 0 var(--sp2); padding-left:var(--sp4); font-size:.86em; color:var(--muted); }
 mark { background:var(--hitmark); color:var(--txt); border-radius:3px; padding:0 2px; }
 .muted { color:var(--muted); } .small { font-size:.88em; } .lead { color:var(--muted); margin:var(--sp1) 0 var(--sp5); }
 

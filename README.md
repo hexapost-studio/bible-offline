@@ -11,7 +11,7 @@ HTML qui s'ouvre dans n'importe quel navigateur. Pensé selon une philosophie de
 | 📚 | **4 traductions** | Louis Segond 1910, Darby, Martin 1744, King James Version |
 | 🔤 | **Interlinéaire Strong** | En KJV, chaque mot est cliquable → lemme hébreu/grec, translittération, définition |
 | 🔗 | **Références croisées** | ~29 000 versets reliés (openbible.info), cliquables |
-| 🔊 | **Lecture audio** | Lit le chapitre à voix haute (synthèse vocale du système, hors-ligne) |
+| 🔊 | **Lecture audio** | Lit le chapitre à voix haute (synthèse vocale, hors-ligne) — *traductions libres uniquement* |
 | 🗓 | **Plan de lecture** | « Bible en 1 an », suivi de progression |
 | 🏠 | **Accueil** | Verset du jour + reprise de lecture + sélecteur de livres AT/NT |
 | 🔍 | **Recherche** plein-texte | Dans toute la traduction active |
@@ -96,6 +96,19 @@ restent **grisées** tant qu'une clé valide n'est pas fournie.
 
 - **En ligne uniquement** : le texte est récupéré à la demande et mis en cache
   **en mémoire pour la session** (jamais stocké) — conforme à la licence API.Bible.
+- **Conformité licence** (versions sous droits) :
+  - **Attribution affichée à chaque lecture** : copyright fourni par l'API + **lien vers
+    l'éditeur** + mention **« Texte fourni par API.Bible »** (lien `https://api.bible`).
+  - **Suivi FUMS** (Fair Use Management System) : obligatoire pour toute webapp ; le jeton
+    `meta.fumsId` de chaque chapitre est signalé via le script de suivi d'API.Bible (non bloquant).
+  - **Lecture audio (TTS) désactivée** sur ces versions : la licence interdit de transformer le
+    texte sous droits en audio. Le TTS reste actif sur les 4 traductions du domaine public.
+  - **Notes de bas de page conservées** et rendues accessibles (repliées par verset).
+  - **Limites** : 1 chapitre affiché à la fois (≤ 2 chapitres / 25 versets imposés) ; pas de pub,
+    d'abonnement ni de don (usage **non commercial**) ; chaque version peut exiger un **accord
+    éditeur séparé** et n'est activée que si la clé y donne droit.
+  - **Résilience réseau** : timeout, nouvelles tentatives (backoff) sur erreurs réseau/quota/5xx,
+    messages clairs (hors-ligne, quota atteint, version refusée), repli sur Segond 1910 en cas d'échec.
 - **Clé** : saisie dans ⚙️ Réglages, conservée en `localStorage` **uniquement**
   (jamais dans le dépôt).
 - **Découvrir les versions accessibles avec ta clé** :
