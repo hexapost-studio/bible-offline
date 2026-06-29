@@ -9,6 +9,13 @@ Thumbs.db
 tools/*.tmp
 *.zip
 
+# Cache intermédiaire de traduction Strong FR (régénérable, volumineux)
+tools/.strong_fr_cache.json
+
+# Python
+__pycache__/
+*.pyc
+
 # Données perso exportées par l'utilisateur
 bible-mes-donnees.json
 

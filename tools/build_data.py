@@ -15,7 +15,7 @@ Sources :
   - Dictionnaires Strong (héb./grec) . github.com/openscriptures/strongs                  (CC-BY-SA)
   - KJV taguée Strong (interlinéaire) . github.com/1John419/kjs (json/strong_pure.json)
 """
-import io, json, re, sys, urllib.request, zipfile
+import csv, io, json, re, sys, urllib.request, zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -110,6 +110,67 @@ def build_strong_dict() -> None:
     write_js("strong.js", "STRONG", strong)
 
 
+# Codes de livres USFM/Paratext alignés sur l'index 0..65 (identiques à data-online.js)
+USFM = ["GEN","EXO","LEV","NUM","DEU","JOS","JDG","RUT","1SA","2SA","1KI","2KI",
+    "1CH","2CH","EZR","NEH","EST","JOB","PSA","PRO","ECC","SNG","ISA","JER","LAM","EZK","DAN",
+    "HOS","JOL","AMO","OBA","JON","MIC","NAM","HAB","ZEP","HAG","ZEC","MAL","MAT","MRK","LUK",
+    "JHN","ACT","ROM","1CO","2CO","GAL","EPH","PHP","COL","1TH","2TH","1TI","2TI","TIT","PHM",
+    "HEB","JAS","1PE","2PE","1JN","2JN","3JN","JUD","REV"]
+# Alias des codes que Nave écrit différemment de l'USFM standard
+USFM_ALIAS = {"PSALMS": "PSA", "PS": "PSA", "SOS": "SNG", "SONG": "SNG", "PHIL": "PHP",
+              "PHILEM": "PHM", "EZE": "EZK", "JOEL": "JOL", "NAH": "NAM", "MARK": "MRK",
+              "JOHN": "JHN", "JOH": "JHN", "1JHN": "1JN", "2JHN": "2JN", "3JHN": "3JN"}
+
+
+def build_nave() -> None:
+    """Nave's Topical Bible (domaine public, source CC-BY 4.0 BradyStephenson/bible-data) :
+    sujet -> liste de versets [bi,ci,v]. Réfs en codes USFM 3 lettres, ranges + listes."""
+    raw = fetch("https://raw.githubusercontent.com/BradyStephenson/bible-data/main/NavesTopicalDictionary.csv").decode("utf-8")
+    code = {c: i for i, c in enumerate(USFM)}
+    # ex. "EXO 6:16-20; JOS 21:4,10; 1CH 6:2,3"  →  réfs développées
+    ref_re = re.compile(r"\b([1-3]?[A-Z]{2,6})\s+(\d+):(\d+(?:[-,]\d+)*)")
+    nave, unknown = {}, set()
+
+    def book_idx(c):
+        c = c.upper()
+        c = USFM_ALIAS.get(c, c)
+        return code.get(c)
+
+    reader = csv.DictReader(io.StringIO(raw))
+    for row in reader:
+        subj = (row.get("subject") or "").strip()
+        entry = row.get("entry") or ""
+        if not subj:
+            continue
+        refs = nave.setdefault(subj, [])
+        seen = set()
+        for m in ref_re.finditer(entry):
+            bi = book_idx(m.group(1))
+            if bi is None:
+                unknown.add(m.group(1)); continue
+            ci = int(m.group(2)) - 1
+            # group(3) = "16-20" ou "4,10" ou "2,3" ou "6"
+            for part in m.group(3).split(","):
+                if "-" in part:
+                    a, b = part.split("-")[:2]
+                    try: a, b = int(a), int(b)
+                    except ValueError: continue
+                    if 0 < b - a < 200:
+                        for v in range(a, b + 1):
+                            key = (bi, ci, v)
+                            if key not in seen: seen.add(key); refs.append([bi, ci, v])
+                else:
+                    try: v = int(part)
+                    except ValueError: continue
+                    key = (bi, ci, v)
+                    if key not in seen: seen.add(key); refs.append([bi, ci, v])
+    # retire les sujets sans aucune référence (renvois « See … »)
+    nave = {k: v for k, v in nave.items() if v}
+    if unknown:
+        print(f"    (codes livres ignorés : {', '.join(sorted(unknown))})")
+    write_js("nave.js", "NAVE", nave)
+
+
 def build_interlinear(kjv_raw: dict) -> None:
     sp = json.loads(fetch("https://raw.githubusercontent.com/1John419/kjs/master/json/strong_pure.json"))
     mi = {m["k"]: m["v"] for m in sp["maps"]}
@@ -132,10 +193,11 @@ def build_interlinear(kjv_raw: dict) -> None:
 
 
 def main():
-    print("1/4 Traductions…");      kjv = build_translations()
-    print("2/4 Références croisées…"); build_crossrefs()
-    print("3/4 Dictionnaire Strong…"); build_strong_dict()
-    print("4/4 Interlinéaire KJV…");  build_interlinear(kjv)
+    print("1/5 Traductions…");      kjv = build_translations()
+    print("2/5 Références croisées…"); build_crossrefs()
+    print("3/5 Dictionnaire Strong…"); build_strong_dict()
+    print("4/5 Interlinéaire KJV…");  build_interlinear(kjv)
+    print("5/5 Index thématique Nave…"); build_nave()
     print("Terminé. Ouvre index.html.")
 
 

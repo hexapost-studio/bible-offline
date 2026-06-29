@@ -1,6 +1,8 @@
 "use strict";
 const { test } = require("node:test");
 const assert = require("node:assert");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // Les fichiers data/*.js assignent des globaux via `window` -> on l'expose.
 global.window = {};
@@ -64,4 +66,31 @@ test("tous les versets du jour (VOTD) existent dans la Segond 1910", () => {
     assert.ok(chap, `chapitre VOTD absent ${bi}.${ci}`);
     assert.ok(chap.find((x) => x.v === v), `verset VOTD absent ${L.formatRef(book.n, ci, v)}`);
   }
+});
+
+const has = (f) => fs.existsSync(path.join(__dirname, "..", "data", f));
+
+test("intégrité Nave : références valides (si data/nave.js généré)", { skip: !has("nave.js") ? "nave.js non généré" : false }, () => {
+  require("../data/nave.js");
+  const NAVE = window.NAVE;
+  assert.ok(Object.keys(NAVE).length > 1000, "trop peu de sujets Nave");
+  let checked = 0;
+  for (const subj in NAVE) {
+    for (const [bi, ci, v] of NAVE[subj]) {
+      assert.ok(bi >= 0 && bi < 66, "livre Nave hors limites: " + bi);
+      const book = B.ls1910.books[bi];
+      assert.ok(book && book.c[ci], `chapitre Nave absent ${bi}.${ci} (${subj})`);
+      checked++;
+    }
+  }
+  assert.ok(checked > 10000, "trop peu de références Nave vérifiées");
+});
+
+test("intégrité Strong FR : numéros connus du dictionnaire (si data/strong_fr.js généré)", { skip: !has("strong_fr.js") ? "strong_fr.js non généré" : false }, () => {
+  require("../data/strong_fr.js");
+  const FR = window.STRONG_FR;
+  assert.ok(Object.keys(FR).length > 0, "strong_fr.js vide");
+  let bad = 0;
+  for (const num in FR) { if (!STRONG[num]) bad++; if (typeof FR[num] !== "string") bad++; }
+  assert.strictEqual(bad, 0, "entrées Strong FR invalides : " + bad);
 });

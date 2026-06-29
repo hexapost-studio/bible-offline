@@ -39,7 +39,14 @@ Conventions appliquées au projet, fondées sur trois piliers : **minimalisme (K
   fonctions courtes à responsabilité unique, échappement HTML systématique (`esc()`).
 - **Données** : format compact à clés courtes ; un fichier `.js` = un global assigné.
 - **Reproductibilité** : toute donnée provient de `tools/build_data.py` (jamais éditée à la main).
-- **Sécurité** : aucune entrée utilisateur n'est injectée sans `esc()` ; aucun réseau à l'exécution.
+  Le français des définitions Strong est généré séparément par `tools/translate_strong.py`
+  (traduction auto, résumable via cache disque, non bloquant).
+- **Données générées vs utilisateur** : `data/*.js` = données générées (régénérables) ;
+  les données personnelles vivent en `localStorage` + sauvegarde miroir `bible_autosave`.
+- **Licence des sources** : ne jamais embarquer de données sous copyright (ex. Strong FR
+  Pétrakian/Helleme). Le FR est notre propre traduction de la source anglaise PD, étiquetée « auto ».
+- **Sécurité** : aucune entrée utilisateur n'est injectée sans `esc()` ; aucun réseau à l'exécution
+  (le réseau n'est utilisé qu'au *build* et, en option, pour les Bibles en ligne API.Bible).
 
 ## 5. Git
 

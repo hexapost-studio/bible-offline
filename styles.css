@@ -188,6 +188,8 @@ mark { background:var(--hitmark); color:var(--txt); border-radius:3px; padding:0
 
 /* ---- Lecture audio ---- */
 .audio-bar { display:flex; align-items:center; gap:var(--sp2); }
+.audio-bar .seg.rate { margin-left:auto; font-size:.82em; }
+.audio-bar .seg.rate button { padding:var(--sp1) var(--sp2); min-height:34px; }
 
 footer { padding:var(--sp2) var(--sp4); border-top:1px solid var(--line); color:var(--muted);
   font-size:12px; text-align:center; background:var(--panel); }

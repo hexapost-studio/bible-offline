@@ -20,10 +20,20 @@ Chaque source conserve sa licence.
 | Dictionnaire Strong (grec, 1890) | **CC-BY-SA** | [openscriptures/strongs](https://github.com/openscriptures/strongs) |
 | Dictionnaire Strong (hébreu, 1894) | **CC-BY-SA** | openscriptures/strongs |
 | KJV taguée Strong (interlinéaire) | Domaine public (KJV) | [1John419/kjs](https://github.com/1John419/kjs) |
+| **Définitions Strong en français** | Traduction **automatique** de notre fait, à partir des définitions anglaises ci-dessus (domaine public) | Générée par `tools/translate_strong.py` |
+| **Index thématique Nave** (Nave's Topical Bible) | **CC-BY 4.0** | [BradyStephenson/bible-data](https://github.com/BradyStephenson/bible-data) (`NavesTopicalDictionary.csv`) |
 
 > Les dictionnaires de James Strong (1890/1894) et la King James Version sont dans le
 > domaine public. Les numérisations sous CC-BY / CC-BY-SA imposent l'**attribution**
 > (présent fichier) et, pour CC-BY-SA, le **partage à l'identique** de ces données dérivées.
+>
+> Les **définitions Strong en français** (`data/strong_fr.js`) sont une **traduction automatique**
+> que nous produisons à partir des définitions **anglaises** (domaine public). Elles peuvent
+> contenir des imperfections et sont signalées « (fr, auto) » dans l'interface. Nous **n'incluons
+> pas** les concordances Strong françaises sous copyright (ex. Pétrakian, Helleme).
+>
+> **Nave's Topical Bible** est dans le domaine public ; la numérisation utilisée (CC-BY 4.0) impose
+> l'attribution à *BradyStephenson/bible-data* (présent fichier).
 
 ## Non inclus
 

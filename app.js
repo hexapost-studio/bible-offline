@@ -28,14 +28,46 @@ let TRAIL = JSON.parse(localStorage.getItem("bible_trail") || "[]");     // parc
 let view = "read", popTarget = null;
 
 const save = () => localStorage.setItem("bible_state", JSON.stringify({ v: st.v, cv: st.cv, b: st.b, c: st.c, cmp: st.cmp }));
-const saveHL = () => localStorage.setItem("bible_highlights", JSON.stringify(HL));
-const saveNotes = () => localStorage.setItem("bible_notes", JSON.stringify(NOTES));
+const saveHL = () => { localStorage.setItem("bible_highlights", JSON.stringify(HL)); markDirty(); };
+const saveNotes = () => { localStorage.setItem("bible_notes", JSON.stringify(NOTES)); markDirty(); };
 const saveHist = () => localStorage.setItem("bible_history", JSON.stringify(HIST));
-const savePlan = () => localStorage.setItem("bible_plan", JSON.stringify(PLAN));
+const savePlan = () => { localStorage.setItem("bible_plan", JSON.stringify(PLAN)); markDirty(); };
 const saveSet = () => localStorage.setItem("bible_settings", JSON.stringify(SET));
-const saveTopics = () => localStorage.setItem("bible_topics", JSON.stringify(TOPICS));
-const saveStudy = () => localStorage.setItem("bible_study", JSON.stringify(STUDY));
+const saveTopics = () => { localStorage.setItem("bible_topics", JSON.stringify(TOPICS)); markDirty(); };
+const saveStudy = () => { localStorage.setItem("bible_study", JSON.stringify(STUDY)); markDirty(); };
 const saveTrail = () => localStorage.setItem("bible_trail", JSON.stringify(TRAIL));
+
+/* ---------- sécurité des données : autosave miroir + rappel d'export ----------
+   localStorage peut être perdu (vidage navigateur). On garde une sauvegarde miroir
+   horodatée (bible_autosave) et on rappelle d'exporter régulièrement. Vraie synchro
+   multi-appareils = hors périmètre (nécessiterait un backend). */
+function userData() { return { highlights: HL, notes: NOTES, topics: TOPICS, study: STUDY, plan: PLAN, settings: SET }; }
+function userDataCount() { return Object.keys(HL).length + Object.keys(NOTES).length + Object.keys(TOPICS).length + Object.keys(STUDY).length; }
+let autosaveTimer;
+function markDirty() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => {
+    try { localStorage.setItem("bible_autosave", JSON.stringify({ data: userData(), ts: Date.now() })); } catch (e) {}
+  }, 600);
+  const n = (parseInt(localStorage.getItem("bible_changes") || "0", 10) || 0) + 1;
+  localStorage.setItem("bible_changes", String(n));
+  if (n > 0 && n % 25 === 0) toast("💡 Pense à exporter tes données (⚙️ Réglages → Exporter)");
+}
+function restoreAutosave() {
+  const raw = localStorage.getItem("bible_autosave"); if (!raw) { toast("Aucune sauvegarde auto"); return; }
+  let d; try { d = JSON.parse(raw); } catch (e) { toast("Sauvegarde illisible"); return; }
+  if (!d.data) { toast("Sauvegarde vide"); return; }
+  if (!confirm("Restaurer la dernière sauvegarde automatique ? Tes données actuelles seront fusionnées avec.")) return;
+  const x = d.data;
+  if (x.highlights) HL = Object.assign(HL, x.highlights);
+  if (x.notes) NOTES = Object.assign(NOTES, x.notes);
+  if (x.topics) TOPICS = Object.assign(TOPICS, x.topics);
+  if (x.study) STUDY = Object.assign(STUDY, x.study);
+  if (x.plan) PLAN = Object.assign(PLAN, x.plan);
+  if (x.settings) { SET = Object.assign(SET, x.settings); applySettings(); }
+  saveHL(); saveNotes(); saveTopics(); saveStudy(); savePlan(); saveSet();
+  toast("Sauvegarde restaurée ✅"); showSettings();
+}
 
 const esc = L.esc;
 const keyOf = (bi, ci, v) => bi + ":" + ci + ":" + v;
@@ -61,6 +93,9 @@ async function ensureVersion(key) {
 }
 const ensureStrong = () => loadScript("data/strong.js");
 const ensureXref = () => loadScript("data/crossref.js");
+const ensureNave = () => loadScript("data/nave.js");
+// Dico Strong français (traduction auto au build) — optionnel : on ignore son absence.
+const ensureStrongFr = () => loadScript("data/strong_fr.js").catch(() => {});
 async function ensureRead() {
   if (isOnline(st.v)) {
     await ensureVersion("ls1910");           // squelette de navigation (noms + nb de chapitres)
@@ -162,13 +197,27 @@ function render() {
   let h = `<h2 class="title">${esc(bk.n)} ${st.c + 1} ${tag}</h2>`;
   // Versions en ligne (sous droits) : attribution obligatoire ; lecture audio interdite (texte ≠ audio).
   if (online) h += onlineAttribution(bible());
-  else h += `<div class="audio-bar"><button id="play" aria-label="Lire le chapitre à voix haute">🔊 Écouter</button></div>`;
+  else h += `<div class="audio-bar"><button id="play" aria-label="Lire le chapitre à voix haute">🔊 Écouter</button>${rateSelectHtml()}</div>`;
   h += `<div class="chapter-body">`;
   for (const vs of ch)
     h += `<p class="verse${hlClass(st.b, st.c, vs.v)}" data-bi="${st.b}" data-ci="${st.c}" data-v="${vs.v}" id="v${vs.v}"><button class="vn" aria-label="Annoter le verset ${vs.v}">${vs.v}</button>${verseHTML(st.b, st.c, vs)}${verseNotes(vs)}${noteIcon(st.b, st.c, vs.v)}</p>`;
   h += `</div>` + navHtml();
   reader.innerHTML = h; reader.parentElement.scrollTop = 0;
-  wireNav(); wireVerseInteractions(); const play = $("#play"); if (play) play.onclick = toggleAudio; save();
+  wireNav(); wireVerseInteractions(); const play = $("#play"); if (play) play.onclick = toggleAudio; wireRate(); save();
+}
+/* sélecteur de vitesse de lecture (TTS) */
+const RATES = [0.75, 1, 1.25, 1.5];
+function rateSelectHtml() {
+  const cur = SET.rate || 1;
+  return `<span class="seg rate" role="group" aria-label="Vitesse de lecture">` +
+    RATES.map((r) => `<button data-rate="${r}" aria-pressed="${cur === r}">${r}×</button>`).join("") + `</span>`;
+}
+function wireRate() {
+  document.querySelectorAll(".audio-bar [data-rate]").forEach((el) => el.onclick = () => {
+    SET.rate = parseFloat(el.dataset.rate); saveSet();
+    document.querySelectorAll(".audio-bar [data-rate]").forEach((b) => b.setAttribute("aria-pressed", String(parseFloat(b.dataset.rate) === SET.rate)));
+    if (speaking) { stopAudio(); toggleAudio(); } // applique la nouvelle vitesse en cours de lecture
+  });
 }
 function renderCompare() {
   const bL = bible().books[st.b], chL = bL.c[st.c], Br = window.BIBLES[st.cv], bR = Br.books[st.b], chR = bR.c[st.c];
@@ -224,7 +273,7 @@ function speakNext() {
   const el = document.getElementById("v" + item.v);
   if (el) { el.classList.add("speaking"); el.scrollIntoView({ block: "center", behavior: "smooth" }); }
   const u = new SpeechSynthesisUtterance(item.t);
-  u.lang = L.ttsLang(st.v); u.rate = 0.95;
+  u.lang = L.ttsLang(st.v); u.rate = SET.rate || 1;
   u.onend = () => { qi++; speakNext(); };
   u.onerror = () => { qi++; speakNext(); };
   window.speechSynthesis.speak(u);
@@ -274,21 +323,36 @@ function toast(msg) {
   toastTimer = setTimeout(() => { t.style.display = "none"; }, 1800);
 }
 
+// Définition Strong : français (traduction auto, si disponible) puis anglais (source PD).
+function strongDef(num, e, compact) {
+  const fr = window.STRONG_FR && window.STRONG_FR[num];
+  const en = esc(e.d || "—");
+  if (fr) return `<div class="lbl">Définition (fr, auto)</div><div>${esc(fr)}</div>`
+    + (compact ? "" : `<div class="lbl">Définition (en)</div><div class="muted">${en}</div>`);
+  return `<div class="lbl">Définition</div><div${compact ? "" : ' class="muted"'}>${en}</div>`;
+}
+
 async function openStrong(wordEl) {
   if (!window.STRONG) { try { await ensureStrong(); } catch (e) { return; } } // silencieux : ne pas toucher la zone de lecture
+  if (!window.STRONG_FR) await ensureStrongFr(); // français optionnel, non bloquant
   const num = wordEl.dataset.s, e = window.STRONG[num]; if (!e) return;
   pop.classList.remove("show");
   const lg = L.strongLang(num);
   spop.innerHTML = `<div><span class="num">${num}</span> <span class="lemma" lang="${lg.lang}" dir="${lg.dir}">${esc(e.l || "")}</span> <span class="translit">${esc(e.t || "")}</span></div>
-    <div style="margin-top:6px">${esc(e.d || "—")}</div>
+    <div style="margin-top:6px">${strongDef(num, e, true)}</div>
     <div class="more"><button id="spopMore">📚 Dictionnaire</button> <button id="spopStudy">🔬 Étudier ce mot</button></div>`;
   placePop(wordEl, spop);
   $("#spopMore").onclick = (ev) => { ev.stopPropagation(); spop.classList.remove("show"); showDico(num); };
   $("#spopStudy").onclick = (ev) => { ev.stopPropagation(); spop.classList.remove("show"); showStudy("word", num); };
   $("#spopMore").focus();
 }
-document.addEventListener("click", () => { pop.classList.remove("show"); spop.classList.remove("show"); });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") { pop.classList.remove("show"); spop.classList.remove("show"); } });
+const closePops = () => { pop.classList.remove("show"); spop.classList.remove("show"); };
+document.addEventListener("click", closePops);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePops(); });
+// Durcissement overlays (leçon z-index/menus) : un popover positionné en fixe se désaligne au
+// défilement ou au redimensionnement → on le ferme pour éviter tout artefact « collé ».
+window.addEventListener("resize", closePops);
+document.addEventListener("scroll", (e) => { if (pop.classList.contains("show") || spop.classList.contains("show")) closePops(); }, true);
 
 /* ---------- accueil ---------- */
 function showHome() {
@@ -382,6 +446,7 @@ function showPlan() {
 async function showDico(q) {
   view = "dico"; pop.classList.remove("show"); spop.classList.remove("show"); stopAudio();
   if (!(await guard(ensureStrong()))) return;
+  await ensureStrongFr(); // français optionnel
   reader.innerHTML = `<h2 class="title">📚 Dictionnaire Strong</h2>
     <div class="toolbar"><label class="visually-hidden" for="dq">Recherche Strong</label>
       <input id="dq" placeholder="Numéro (G26, H157) ou mot…" aria-label="Recherche Strong" style="flex:1;min-width:180px" value="${q ? esc(q) : ""}">
@@ -396,7 +461,7 @@ async function showDico(q) {
 function entryHtml(num, e) {
   const lg = L.strongLang(num);
   return `<section class="entry"><div><span class="num">${num}</span> <span class="lemma" lang="${lg.lang}" dir="${lg.dir}">${esc(e.l || "")}</span> <span class="translit">${esc(e.t || "")}</span></div>
-    <div class="lbl">Définition</div><div>${esc(e.d || "—")}</div>
+    ${strongDef(num, e)}
     <div class="lbl">Usage (KJV)</div><div class="muted">${esc(e.k || "—")}</div></section>`;
 }
 function dicoSearch(q) {
@@ -458,7 +523,7 @@ async function wordRun(q) {
   if (!m) { box.innerHTML = `<p class="muted">Entre un numéro Strong valide, ex. <b>G26</b> ou <b>H157</b>.</p>`; return; }
   const num = m[1].toUpperCase() + m[2]; studyState.lastWord = num;
   box.innerHTML = `<p class="muted" role="status">Chargement de l'interlinéaire…</p>`;
-  try { await ensureStrong(); await ensureVersion("kjv"); }
+  try { await ensureStrong(); await ensureVersion("kjv"); await ensureStrongFr(); }
   catch (e) { box.innerHTML = `<p class="muted">⚠️ ${esc(e.message)}</p>`; return; }
   const e = window.STRONG[num];
   const occ = L.concordance(window.KJVI, num);
@@ -466,7 +531,7 @@ async function wordRun(q) {
   let h = "";
   if (e) { const lg = L.strongLang(num);
     h += `<section class="entry"><div><span class="num">${num}</span> <span class="lemma" lang="${lg.lang}" dir="${lg.dir}">${esc(e.l || "")}</span> <span class="translit">${esc(e.t || "")}</span></div>
-      <div class="lbl">Définition</div><div>${esc(e.d || "—")}</div>
+      ${strongDef(num, e)}
       <div class="lbl">Usage (KJV)</div><div class="muted">${esc(e.k || "—")}</div></section>`;
   } else h += `<p class="muted">Numéro « ${esc(num)} » absent du dictionnaire.</p>`;
   h += `<div class="section-label">Occurrences <span class="pill">${totalHits} dans ${occ.length} verset(s)</span></div>`;
@@ -540,13 +605,23 @@ function studyTopics(theme) {
   const groups = L.topicGroups(TOPICS);
   const themes = Object.keys(groups).sort((a, b) => a.localeCompare(b, "fr"));
   if (!theme) {
-    let h = `<p class="lead small">Classe un verset par thème via 🏷 (clic sur son n° en lecture). Clique un thème pour revoir ses versets.</p>`;
-    if (!themes.length) h += `<p class="muted">Aucun thème pour l'instant.</p>`;
+    let h = `<div class="section-label">Mes thèmes</div>
+      <p class="lead small">Classe un verset par thème via 🏷 (clic sur son n° en lecture). Clique un thème pour revoir ses versets.</p>`;
+    if (!themes.length) h += `<p class="muted">Aucun thème personnel pour l'instant.</p>`;
     else { h += `<div class="chips">`;
       for (const t of themes) h += `<button class="chip" data-theme="${esc(t)}">${esc(t)} <span class="pill">${groups[t].length}</span></button>`;
       h += `</div>`; }
+    h += `<div class="section-label">Index thématique Nave</div>
+      <p class="lead small">Des milliers de sujets bibliques (Nave's Topical Bible). Cherche un sujet en anglais (<i>love</i>, <i>faith</i>, <i>prayer</i>…).</p>
+      <div class="toolbar"><label class="visually-hidden" for="nq">Rechercher un sujet Nave</label>
+        <input id="nq" placeholder="Sujet Nave (ex. love, faith)…" style="flex:1;min-width:180px" value="${studyState.lastNave ? esc(studyState.lastNave) : ""}">
+        <button id="ngo">Chercher</button></div>
+      <div id="nres"></div>`;
     body.innerHTML = h;
     body.querySelectorAll("[data-theme]").forEach((el) => el.onclick = () => studyTopics(el.dataset.theme));
+    const run = () => naveSearch($("#nq").value);
+    $("#ngo").onclick = run; $("#nq").addEventListener("keydown", (e) => { if (e.key === "Enter") run(); });
+    if (studyState.lastNave) naveSearch(studyState.lastNave);
     return;
   }
   const verses = groups[theme] || [];
@@ -559,6 +634,39 @@ function studyTopics(theme) {
   $("#topicsBack").onclick = () => studyTopics();
   wireResultNav();
   body.querySelectorAll(".untag").forEach((el) => el.onclick = (e) => { e.stopPropagation(); untag(el.dataset.key, el.dataset.theme); toast("Thème retiré"); studyTopics(theme); });
+}
+// Recherche dans l'index Nave (chargé à la demande). Liste les sujets correspondants.
+async function naveSearch(q) {
+  q = (q || "").trim(); const box = $("#nres"); if (!box) return;
+  studyState.lastNave = q;
+  if (q.length < 2) { box.innerHTML = `<p class="muted">Tape au moins 2 lettres.</p>`; return; }
+  box.innerHTML = `<p class="muted" role="status">Chargement de l'index Nave…</p>`;
+  try { await ensureNave(); } catch (e) { box.innerHTML = `<p class="muted">⚠️ Index Nave indisponible (non généré ?).</p>`; return; }
+  const N = window.NAVE || {}, ql = q.toUpperCase(), max = 80;
+  const hits = Object.keys(N).filter((s) => s.includes(ql)).sort();
+  // tri : correspondance exacte puis préfixe puis alpha
+  hits.sort((a, b) => (a === ql ? -1 : b === ql ? 1 : 0) || (a.startsWith(ql) === b.startsWith(ql) ? a.localeCompare(b) : a.startsWith(ql) ? -1 : 1));
+  if (!hits.length) { box.innerHTML = `<p class="muted">Aucun sujet Nave pour « ${esc(q)} ».</p>`; return; }
+  let h = `<p class="small muted">${hits.length}${hits.length > max ? "+" : ""} sujet(s)</p><div class="chips">`;
+  for (const s of hits.slice(0, max)) h += `<button class="chip" data-nave="${esc(s)}">${esc(s)} <span class="pill">${N[s].length}</span></button>`;
+  h += `</div>`;
+  box.innerHTML = h;
+  box.querySelectorAll("[data-nave]").forEach((el) => el.onclick = () => showNave(el.dataset.nave));
+}
+// Affiche les versets d'un sujet Nave (réfs [bi,ci,v]).
+async function showNave(subject) {
+  const body = $("#studyBody"); if (!body) return;
+  try { await ensureNave(); } catch (e) { return; }
+  const refs = (window.NAVE && window.NAVE[subject]) || [];
+  let h = `<div class="toolbar"><button id="naveBack">‹ Retour aux thèmes</button> <b>📖 ${esc(subject)}</b> <span class="pill">${refs.length} verset(s)</span></div>
+    <p class="small muted">Source : Nave's Topical Bible (domaine public). Clique un verset pour l'ouvrir.</p><div class="results">`;
+  for (const [bi, ci, v] of refs) { const bk = bible().books[bi]; if (!bk) continue;
+    const vs = (bk.c[ci] || []).find((x) => x.v === v);
+    h += `<button class="result" data-bi="${bi}" data-ci="${ci}" data-v="${v}"><span class="ref">${esc(bk.n)} ${ci + 1}:${v}</span><span>${esc(vs ? vs.t : "")}</span></button>`; }
+  h += `</div>`;
+  body.innerHTML = h;
+  $("#naveBack").onclick = () => studyTopics();
+  wireResultNav();
 }
 
 /* --- 4) Parcours de références croisées (chaîne d'étude guidée) --- */
@@ -637,8 +745,11 @@ function showSettings() {
       <input id="apiProxy" type="url" autocomplete="off" placeholder="Proxy (recommandé) : https://…/api/bible" style="flex:1;min-width:160px" value="${esc(O.getProxy() || "")}"></div>
     <p class="small muted">Le <b>proxy</b> (dossier <code>proxy/</code>, déployable sur Vercel) garde la clé côté serveur et règle le CORS — recommandé pour un usage public.</p>
     <div id="apiStatus" class="small muted" aria-live="polite"></div>`;
-  h += `<div class="section-label">Mes données</div><div class="toolbar"><button id="exp">⬇️ Exporter (.json)</button><button id="imp">⬆️ Importer</button></div>
-    <p class="small muted">${Object.keys(HL).length} surlignage(s) · ${Object.keys(NOTES).length} note(s) · ${Object.keys(TOPICS).length} verset(s) classé(s) · ${Object.keys(STUDY).length} fiche(s) d'étude, stockés dans ce navigateur.</p>`;
+  const autoRaw = localStorage.getItem("bible_autosave"); let autoTs = 0; try { autoTs = JSON.parse(autoRaw || "{}").ts || 0; } catch (e) {}
+  const changes = parseInt(localStorage.getItem("bible_changes") || "0", 10) || 0;
+  h += `<div class="section-label">Mes données</div><div class="toolbar"><button id="exp">⬇️ Exporter (.json)</button><button id="imp">⬆️ Importer</button><button id="restore"${autoTs ? "" : " disabled"}>↩️ Restaurer la sauvegarde auto</button></div>
+    <p class="small muted">${Object.keys(HL).length} surlignage(s) · ${Object.keys(NOTES).length} note(s) · ${Object.keys(TOPICS).length} verset(s) classé(s) · ${Object.keys(STUDY).length} fiche(s) d'étude, stockés dans ce navigateur.</p>
+    <p class="small muted">${autoTs ? "Sauvegarde auto : " + new Date(autoTs).toLocaleString("fr-FR") : "Aucune sauvegarde auto pour l'instant."}${changes ? ` · <b>${changes}</b> modif(s) depuis le dernier export` : ""}. <br>⚠️ Ces données vivent dans ce navigateur — exporte régulièrement (la synchro multi-appareils nécessiterait un serveur).</p>`;
   reader.innerHTML = h; reader.parentElement.scrollTop = 0; reader.focus();
   reader.querySelectorAll("[data-set]").forEach((el) => el.onclick = () => {
     let val = el.dataset.val; if (el.dataset.set === "size" || el.dataset.set === "leading") val = parseFloat(val);
@@ -660,12 +771,15 @@ function showSettings() {
     $("#apiClear").onclick = () => { O.clearKey(); O.setProxy(""); rebuildOnlineOptions(); status(); toast("Clé et proxy retirés"); };
   }
   $("#exp").onclick = exportData; $("#imp").onclick = () => $("#importFile").click();
+  const rb = $("#restore"); if (rb) rb.onclick = restoreAutosave;
 }
 function exportData() {
-  const data = { highlights: HL, notes: NOTES, topics: TOPICS, study: STUDY, plan: PLAN, settings: SET, exported: new Date().toISOString() };
+  const data = Object.assign(userData(), { exported: new Date().toISOString() });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
   a.download = "bible-mes-donnees.json"; a.click(); URL.revokeObjectURL(a.href);
+  localStorage.setItem("bible_changes", "0"); localStorage.setItem("bible_lastexport", String(Date.now()));
+  toast("Données exportées ✅");
 }
 $("#importFile").addEventListener("change", (e) => {
   const f = e.target.files[0]; if (!f) return; const rd = new FileReader();

@@ -18,8 +18,9 @@ HTML qui s'ouvre dans n'importe quel navigateur. Pensé selon une philosophie de
 | ⇄ | **Comparaison** | Deux traductions côte à côte, versets alignés |
 | ★ | **Surlignages & notes** | 4 couleurs + notes par verset (stockés localement) |
 | 📋 | **Copier / partager** | Un verset avec sa référence (Web Share API) |
-| 📖 | **Dictionnaire Strong** | 14 197 entrées hébreu + grec, recherche par numéro ou mot |
-| 🔬 | **Étude en profondeur** | Hub à 4 onglets (voir ci-dessous) : étude de mot, fiche inductive, thèmes, parcours |
+| 📖 | **Dictionnaire Strong** | 14 197 entrées hébreu + grec, recherche par numéro ou mot ; **définitions en français** (traduction auto) avec repli anglais |
+| 🔬 | **Étude en profondeur** | Hub à 4 onglets (voir ci-dessous) : étude de mot, fiche inductive, thèmes (+ **index Nave**), parcours |
+| 💾 | **Sauvegarde auto** | Miroir local horodaté de tes annotations + rappel d'export + restauration |
 | ⚙️ | **Réglages de lecture** | Thème sombre / clair / sépia, police serif ou sans, taille, interligne |
 | 💾 | **Export / Import** | Sauvegarde des annotations en `.json`, transférable |
 | 📲 | **Installable (PWA)** | « Ajouter à l'écran d'accueil », fonctionne hors-ligne (service worker) |
@@ -33,13 +34,19 @@ Le bouton 🔬 ouvre un **hub d'étude** à quatre onglets :
   l'Écriture, avec le mot surligné dans chaque verset (s'appuie sur l'interlinéaire `KJVI`).
 - **📝 Fiche d'étude inductive (O/I/A)** — par chapitre : Observation / Interprétation /
   Application / Prière, **sauvegarde automatique**, liste de toutes tes fiches.
-- **🏷 Étude thématique (tags)** — classe un verset par thème libre via 🏷 (popover du n° de
-  verset) ; revois ensuite tous les versets d'un thème.
+- **🏷 Étude thématique (tags + Nave)** — classe un verset par thème libre via 🏷 (popover du n° de
+  verset) ; revois tous les versets d'un thème. Inclut aussi l'**index thématique Nave**
+  (Nave's Topical Bible, domaine public, ~4 600 sujets) : cherche un sujet → liste de versets.
 - **🧭 Parcours de références croisées** — chaîne d'étude guidée : démarre depuis un verset (🧭),
   suis ses renvois de verset en verset avec un **fil d'Ariane** (avancer / reculer / effacer).
 
 Tout est **hors-ligne** et **stocké localement** (`bible_topics`, `bible_study`, `bible_trail`),
 inclus dans l'export/import `.json`.
+
+> 💾 **Sécurité des données** : tes annotations vivent dans le navigateur (`localStorage`). L'app
+> en garde une **sauvegarde miroir horodatée** (`bible_autosave`), te **rappelle d'exporter**
+> régulièrement, et propose de **restaurer** la dernière sauvegarde (⚙️ Réglages → Mes données).
+> Une vraie synchro multi-appareils nécessiterait un serveur (hors périmètre 100 % hors-ligne).
 
 ## 🚀 Démarrage
 
@@ -64,8 +71,11 @@ Bible-Offline/
 │   ├── ls1910.js darby.js martin.js kjv.js   # textes (window.BIBLES)
 │   ├── kjvi.js           # interlinéaire KJV mot→Strong (window.KJVI)
 │   ├── crossref.js       # références croisées (window.XREF)
-│   └── strong.js         # dictionnaire Strong héb./grec (window.STRONG)
-├── tools/build_data.py   # régénère data/ depuis les sources (reproductible)
+│   ├── strong.js         # dictionnaire Strong héb./grec (window.STRONG)
+│   ├── strong_fr.js      # définitions Strong en français, auto (window.STRONG_FR) — optionnel
+│   └── nave.js           # index thématique Nave (window.NAVE)
+├── tools/build_data.py        # régénère data/ depuis les sources (reproductible)
+├── tools/translate_strong.py  # génère strong_fr.js (traduction auto, résumable)
 ├── tools/catalog.py      # liste les Bibles fr accessibles avec ta clé API.Bible
 ├── proxy/                # proxy serverless Vercel pour API.Bible (clé cachée + CORS)
 ├── tests/                # node --test (logique + intégrité des données)
@@ -76,11 +86,15 @@ Bible-Offline/
 ## 🔧 Régénérer les données
 
 ```bash
-python3 tools/build_data.py   # ou : npm run build
+python3 tools/build_data.py        # textes, réf. croisées, Strong, interlinéaire, index Nave
+python3 tools/translate_strong.py  # (optionnel) définitions Strong en français (traduction auto)
 ```
 
-Télécharge et recompacte les sources publiques. Voir [`ATTRIBUTIONS.md`](ATTRIBUTIONS.md)
-pour les licences et [`NORMES.md`](NORMES.md) pour les conventions techniques.
+`build_data.py` télécharge et recompacte les sources publiques (dont l'index Nave).
+`translate_strong.py` génère `data/strong_fr.js` en traduisant les définitions anglaises
+(domaine public) — **résumable** (cache disque) et **non bloquant** : si absent, l'app affiche
+l'anglais. Voir [`ATTRIBUTIONS.md`](ATTRIBUTIONS.md) pour les licences et
+[`NORMES.md`](NORMES.md) pour les conventions techniques.
 
 ## ✅ Tests
 
