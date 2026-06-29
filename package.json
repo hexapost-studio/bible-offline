@@ -6,6 +6,8 @@
   "license": "MIT",
   "scripts": {
     "test": "node --test",
-    "build": "python3 tools/build_data.py"
+    "build": "python3 tools/build_data.py",
+    "translate": "python3 tools/translate_strong.py",
+    "serve": "python3 tools/serve.py"
   }
 }

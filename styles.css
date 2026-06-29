@@ -157,6 +157,12 @@ mark { background:var(--hitmark); color:var(--txt); border-radius:3px; padding:0
 .bias-item input { flex:0 0 auto; margin-top:2px; }
 .bookintro { margin:0 0 var(--sp4); border:1px solid var(--line); border-radius:var(--radius); padding:var(--sp2) var(--sp3); }
 .bookintro > summary { cursor:pointer; color:var(--accent2); font-weight:600; }
+/* Astuce première visite */
+.tip { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:90;
+  width:min(92vw, 460px); background:var(--panel); border:1px solid var(--line);
+  border-radius:var(--radius); box-shadow:0 12px 40px var(--shadow); padding:var(--sp4); line-height:1.5; }
+.tip ul { margin:var(--sp2) 0 var(--sp3); padding-left:var(--sp5); display:flex; flex-direction:column; gap:var(--sp1); }
+.tip button { margin-top:var(--sp1); }
 .chips { display:flex; gap:var(--sp2); flex-wrap:wrap; }
 .chip { border:1px solid var(--line); border-radius:999px; padding:var(--sp2) var(--sp3); background:var(--panel); }
 .chip:hover { border-color:var(--accent); }

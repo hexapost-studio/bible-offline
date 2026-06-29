@@ -78,6 +78,14 @@ test("parseTags : minuscule, trim, déduplique, ignore le vide", () => {
   assert.deepStrictEqual(L.parseTags(null), []);
 });
 
+test("fold : insensible aux accents et à la casse", () => {
+  assert.strictEqual(L.fold("Ésaïe"), "esaie");
+  assert.strictEqual(L.fold("créa"), "crea");
+  assert.strictEqual(L.fold("CŒUR"), "cœur");           // ligature conservée, juste minusculée
+  assert.strictEqual(L.fold("Dieu"), "dieu");
+  assert.ok(L.fold("L’Éternel").includes("eternel"));   // les accents tombent
+});
+
 test("gabarits d'étude : 3 templates, clés de champ uniques", () => {
   assert.deepStrictEqual(Object.keys(L.STUDY_TEMPLATES), ["oia", "c3", "s7"]);
   const keys = L.studyFieldKeys();

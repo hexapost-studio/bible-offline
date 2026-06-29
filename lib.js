@@ -11,6 +11,12 @@
     return String(s).replace(/[&<>"]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m]));
   }
 
+  // Normalise pour comparaison insensible aux accents et à la casse (recherche FR).
+  // « Ésaïe » -> « esaie », « créa » -> « crea ».
+  function fold(s) {
+    return String(s).normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+  }
+
   function testament(bookIndex) {
     return bookIndex < OT_COUNT ? "AT" : "NT";
   }
@@ -173,7 +179,7 @@
     return false;
   }
 
-  const api = { esc, testament, strongLang, formatRef, buildPlan, dayOfYear, verseOfDay, VOTD, ttsLang,
+  const api = { esc, fold, testament, strongLang, formatRef, buildPlan, dayOfYear, verseOfDay, VOTD, ttsLang,
     concordance, topicGroups, parseTags, STUDY_TEMPLATES, STUDY_BIASES, studyFieldKeys, hasSheetContent,
     OT_COUNT, NT_COUNT };
 

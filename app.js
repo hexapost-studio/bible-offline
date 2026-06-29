@@ -754,15 +754,21 @@ async function studyTrail() {
 /* ---------- recherche plein-texte ---------- */
 let stimer;
 search.addEventListener("input", () => { clearTimeout(stimer); stimer = setTimeout(runSearch, 220); });
+// Regex insensible aux accents : chaque lettre matche ses variantes accentuées (pour le surlignage).
+const ACCENTS = { a: "aàâäá", c: "cç", e: "eéèêë", i: "iîïí", o: "oôöó", u: "uùûüú", y: "yÿý", n: "nñ" };
+function accentRegex(q) {
+  const pat = L.fold(q).replace(/[.*+?^${}()|[\]\\]/g, "\\$&").split("").map((ch) => ACCENTS[ch] ? "[" + ACCENTS[ch] + "]" : ch).join("");
+  return new RegExp("(" + pat + ")", "ig");
+}
 function runSearch() {
-  const q = search.value.trim().toLowerCase(); if (q.length < 3) { if (view === "search") render(); return; }
+  const raw = search.value.trim(); const q = L.fold(raw); if (q.length < 3) { if (view === "search") render(); return; }
   view = "search"; stopAudio();
   const books = bible().books, res = [], max = 300;
   outer: for (let bi = 0; bi < books.length; bi++) { const bk = books[bi];
     for (let ci = 0; ci < bk.c.length; ci++) for (const vs of bk.c[ci]) {
-      if (vs.t.toLowerCase().includes(q)) { res.push({ bi, ci, v: vs.v, t: vs.t, ref: `${bk.n} ${ci + 1}:${vs.v}` }); if (res.length >= max) break outer; } } }
-  const re = new RegExp("(" + q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "ig");
-  let h = `<h2 class="title">Recherche : « ${esc(search.value.trim())} »</h2><p class="lead">${res.length}${res.length >= max ? "+" : ""} résultat(s) · ${esc(bible().name)}</p><div class="results">`;
+      if (L.fold(vs.t).includes(q)) { res.push({ bi, ci, v: vs.v, t: vs.t, ref: `${bk.n} ${ci + 1}:${vs.v}` }); if (res.length >= max) break outer; } } }
+  const re = accentRegex(raw);
+  let h = `<h2 class="title">Recherche : « ${esc(raw)} »</h2><p class="lead">${res.length}${res.length >= max ? "+" : ""} résultat(s) · ${esc(bible().name)}</p><div class="results">`;
   for (const r of res) h += `<button class="result" data-bi="${r.bi}" data-ci="${r.ci}" data-v="${r.v}"><span class="ref">${esc(r.ref)}</span><span>${esc(r.t).replace(re, "<mark>$1</mark>")}</span></button>`;
   h += "</div>"; reader.innerHTML = h; reader.parentElement.scrollTop = 0; wireResultNav();
 }
@@ -883,5 +889,23 @@ document.addEventListener("keydown", (e) => {
   fillBooks(); fillChapters();
   if (st.cmp) { await guard(ensureVersion(st.cv)); }
   render();
+  maybeShowTip();
 })();
+
+/* ---------- astuce première visite (découvrabilité) ---------- */
+function maybeShowTip() {
+  if (localStorage.getItem("bible_seen_tip")) return;
+  const tip = document.createElement("div");
+  tip.className = "tip"; tip.setAttribute("role", "note");
+  tip.innerHTML = `<div><b>💡 Bienvenue !</b> Quelques repères pour bien démarrer :</div>
+    <ul>
+      <li>Clique le <b>numéro d'un verset</b> → surligner, annoter, références, thème, écouter.</li>
+      <li>En <b>King James Version</b>, clique un <b>mot</b> → son sens hébreu/grec (Strong).</li>
+      <li><b>🔬 Étude</b> : concordance, fiches (O/I/A · 3C · 7 étapes), thèmes &amp; parcours.</li>
+    </ul>
+    <button id="tipClose">J'ai compris</button>`;
+  document.body.appendChild(tip);
+  const close = () => { tip.remove(); localStorage.setItem("bible_seen_tip", "1"); };
+  $("#tipClose").onclick = close;
+}
 })();

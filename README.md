@@ -15,7 +15,7 @@ HTML qui s'ouvre dans n'importe quel navigateur. Pensé selon une philosophie de
 | ℹ️ | **Introduction par livre** | Repères de contexte en tête de livre : genre littéraire, auteur et datation (traditionnels) |
 | 🗓 | **Plan de lecture** | « Bible en 1 an », suivi de progression |
 | 🏠 | **Accueil** | Verset du jour + reprise de lecture + sélecteur de livres AT/NT |
-| 🔍 | **Recherche** plein-texte | Dans toute la traduction active |
+| 🔍 | **Recherche** plein-texte | Dans toute la traduction active, **insensible aux accents** (« esaie » trouve « Ésaïe ») |
 | ⇄ | **Comparaison** | Deux traductions côte à côte, versets alignés |
 | ★ | **Surlignages & notes** | 4 couleurs + notes par verset (stockés localement) |
 | 📋 | **Copier / partager** | Un verset avec sa référence (Web Share API) |
@@ -100,10 +100,19 @@ python3 tools/translate_strong.py  # (optionnel) définitions Strong en françai
 l'anglais. Voir [`ATTRIBUTIONS.md`](ATTRIBUTIONS.md) pour les licences et
 [`NORMES.md`](NORMES.md) pour les conventions techniques.
 
+## 🛠 Développement local
+
+```bash
+npm run serve   # serveur local SANS cache (http://127.0.0.1:8765) — évite de tester un ancien build
+```
+
+En production (GitHub Pages), c'est le **service worker** qui gère le cache hors-ligne
+(pense à bumper `CACHE` dans `sw.js` à chaque déploiement).
+
 ## ✅ Tests
 
 ```bash
-npm test        # node --test : logique pure + intégrité des données
+npm test        # node --test : logique pure + intégrité des données + smoke
 ```
 
 15 tests : fonctions pures (`lib.js`) et intégrité des données (66 livres par
