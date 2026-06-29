@@ -19,9 +19,27 @@ HTML qui s'ouvre dans n'importe quel navigateur. Pensé selon une philosophie de
 | ★ | **Surlignages & notes** | 4 couleurs + notes par verset (stockés localement) |
 | 📋 | **Copier / partager** | Un verset avec sa référence (Web Share API) |
 | 📖 | **Dictionnaire Strong** | 14 197 entrées hébreu + grec, recherche par numéro ou mot |
+| 🔬 | **Étude en profondeur** | Hub à 4 onglets (voir ci-dessous) : étude de mot, fiche inductive, thèmes, parcours |
 | ⚙️ | **Réglages de lecture** | Thème sombre / clair / sépia, police serif ou sans, taille, interligne |
 | 💾 | **Export / Import** | Sauvegarde des annotations en `.json`, transférable |
 | 📲 | **Installable (PWA)** | « Ajouter à l'écran d'accueil », fonctionne hors-ligne (service worker) |
+
+## 🔬 Étude biblique en profondeur
+
+Le bouton 🔬 ouvre un **hub d'étude** à quatre onglets :
+
+- **🔤 Étude de mot (concordance Strong)** — saisis un numéro Strong (ou clique un mot en
+  lecture KJV → « Étudier ce mot ») : définition hébreu/grec **+ toutes ses occurrences** dans
+  l'Écriture, avec le mot surligné dans chaque verset (s'appuie sur l'interlinéaire `KJVI`).
+- **📝 Fiche d'étude inductive (O/I/A)** — par chapitre : Observation / Interprétation /
+  Application / Prière, **sauvegarde automatique**, liste de toutes tes fiches.
+- **🏷 Étude thématique (tags)** — classe un verset par thème libre via 🏷 (popover du n° de
+  verset) ; revois ensuite tous les versets d'un thème.
+- **🧭 Parcours de références croisées** — chaîne d'étude guidée : démarre depuis un verset (🧭),
+  suis ses renvois de verset en verset avec un **fil d'Ariane** (avancer / reculer / effacer).
+
+Tout est **hors-ligne** et **stocké localement** (`bible_topics`, `bible_study`, `bible_trail`),
+inclus dans l'export/import `.json`.
 
 ## 🚀 Démarrage
 
@@ -85,7 +103,7 @@ cibles des références croisées valides, versets du jour vérifiés).
   téléchargés qu'à leur première utilisation → démarrage rapide malgré ~40 Mo de données.
 - **Format compact** : clés courtes (`v`, `t`, `n`, `c`) pour limiter le poids.
 - **Persistance** : `localStorage` (`bible_state`, `bible_highlights`, `bible_notes`,
-  `bible_history`, `bible_plan`, `bible_settings`).
+  `bible_history`, `bible_plan`, `bible_settings`, `bible_topics`, `bible_study`, `bible_trail`).
 
 ## 🌐 Versions en ligne (sous droits, optionnel)
 

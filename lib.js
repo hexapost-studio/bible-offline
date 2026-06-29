@@ -73,7 +73,60 @@
     return translationKey === "kjv" ? "en-US" : "fr-FR";
   }
 
-  const api = { esc, testament, strongLang, formatRef, buildPlan, dayOfYear, verseOfDay, VOTD, ttsLang, OT_COUNT, NT_COUNT };
+  /* ---------- étude approfondie (logique pure, testée) ---------- */
+
+  // Concordance d'un numéro Strong : parcourt l'interlinéaire KJVI (clés "bi.ci.v",
+  // valeurs = [[texte, "G##"?], ...]) et renvoie [["bi.ci.v", nbOccurrences], ...]
+  // trié dans l'ordre canonique (livre, chapitre, verset).
+  function concordance(KJVI, num) {
+    const out = [];
+    if (!KJVI || !num) return out;
+    for (const key in KJVI) {
+      const segs = KJVI[key];
+      if (!segs) continue;
+      let count = 0;
+      for (let i = 0; i < segs.length; i++) if (segs[i][1] === num) count++;
+      if (count) out.push([key, count]);
+    }
+    out.sort((a, b) => {
+      const A = a[0].split("."), B = b[0].split(".");
+      return (A[0] - B[0]) || (A[1] - B[1]) || (A[2] - B[2]);
+    });
+    return out;
+  }
+
+  // Regroupe les versets par thème : { "bi:ci:v": ["foi", "grâce"] } -> { "foi": ["bi:ci:v", ...] }.
+  // Les listes de versets sont triées dans l'ordre canonique.
+  function topicGroups(TOPICS) {
+    const g = {};
+    if (!TOPICS) return g;
+    for (const key in TOPICS) {
+      const tags = TOPICS[key] || [];
+      for (let i = 0; i < tags.length; i++) {
+        const t = tags[i];
+        (g[t] = g[t] || []).push(key);
+      }
+    }
+    for (const t in g) g[t].sort((a, b) => {
+      const A = a.split(":"), B = b.split(":");
+      return (A[0] - B[0]) || (A[1] - B[1]) || (A[2] - B[2]);
+    });
+    return g;
+  }
+
+  // Normalise une saisie de thèmes libres ("Foi, Grâce ,foi") -> ["foi", "grâce"] (minuscules, dédupliqués, non vides).
+  function parseTags(input) {
+    const seen = {};
+    const out = [];
+    String(input || "").split(",").forEach((raw) => {
+      const t = raw.trim().toLowerCase();
+      if (t && !seen[t]) { seen[t] = 1; out.push(t); }
+    });
+    return out;
+  }
+
+  const api = { esc, testament, strongLang, formatRef, buildPlan, dayOfYear, verseOfDay, VOTD, ttsLang,
+    concordance, topicGroups, parseTags, OT_COUNT, NT_COUNT };
 
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.Lib = api;

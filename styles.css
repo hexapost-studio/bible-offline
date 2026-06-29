@@ -139,6 +139,31 @@ mark { background:var(--hitmark); color:var(--txt); border-radius:3px; padding:0
 .entry .lbl { color:var(--muted); font-size:.78em; text-transform:uppercase; letter-spacing:.05em; margin-top:var(--sp3); }
 .toolbar { display:flex; gap:var(--sp2); flex-wrap:wrap; margin-bottom:var(--sp3); align-items:center; }
 
+/* ---- Étude approfondie ---- */
+.tabs { display:flex; gap:var(--sp1); flex-wrap:wrap; border-bottom:1px solid var(--line); margin-bottom:var(--sp4); }
+.tabs [role="tab"] { border:1px solid transparent; border-bottom:none; border-radius:10px 10px 0 0;
+  background:transparent; padding:var(--sp2) var(--sp3); color:var(--muted); }
+.tabs [role="tab"]:hover { color:var(--txt); }
+.tabs [role="tab"][aria-selected="true"] { color:var(--accent); border-color:var(--line); background:var(--panel);
+  font-weight:700; position:relative; top:1px; }
+.study-field { margin-bottom:var(--sp3); }
+.study-field textarea { width:100%; resize:vertical; border:1px solid var(--line); border-radius:var(--radius);
+  background:var(--panel2); padding:var(--sp3); line-height:1.6; min-height:88px; }
+.study-field textarea:focus-visible { border-color:var(--accent); }
+.chips { display:flex; gap:var(--sp2); flex-wrap:wrap; }
+.chip { border:1px solid var(--line); border-radius:999px; padding:var(--sp2) var(--sp3); background:var(--panel); }
+.chip:hover { border-color:var(--accent); }
+.result-row { display:flex; gap:var(--sp2); align-items:stretch; }
+.result-row .result { flex:1; }
+.untag { border:1px solid var(--line); border-radius:var(--radius); background:var(--panel2);
+  width:42px; flex:0 0 auto; color:var(--muted); }
+.untag:hover { border-color:var(--accent); color:var(--txt); }
+.breadcrumb { display:flex; gap:var(--sp1); flex-wrap:wrap; align-items:center; margin-bottom:var(--sp3); }
+.breadcrumb .crumb { border:1px solid var(--line); border-radius:999px; padding:var(--sp1) var(--sp3); background:var(--panel);
+  font-size:.9em; color:var(--muted); }
+.breadcrumb .crumb[aria-current="step"] { color:var(--accent); border-color:var(--accent); font-weight:700; }
+.breadcrumb .sep { color:var(--muted); }
+
 /* ---- Popovers ---- */
 .pop { position:fixed; z-index:50; display:none; background:var(--panel); border:1px solid var(--line);
   border-radius:var(--radius); box-shadow:0 10px 36px var(--shadow); }

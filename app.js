@@ -22,6 +22,9 @@ let NOTES = JSON.parse(localStorage.getItem("bible_notes") || "{}");
 let HIST = JSON.parse(localStorage.getItem("bible_history") || "[]");
 let PLAN = JSON.parse(localStorage.getItem("bible_plan") || "{}");
 let SET = JSON.parse(localStorage.getItem("bible_settings") || "{}");
+let TOPICS = JSON.parse(localStorage.getItem("bible_topics") || "{}");   // "bi:ci:v" -> ["thème", …]
+let STUDY = JSON.parse(localStorage.getItem("bible_study") || "{}");     // "bi.ci"   -> {o,i,a,p,u}
+let TRAIL = JSON.parse(localStorage.getItem("bible_trail") || "[]");     // parcours : [[bi,ci,v], …]
 let view = "read", popTarget = null;
 
 const save = () => localStorage.setItem("bible_state", JSON.stringify({ v: st.v, cv: st.cv, b: st.b, c: st.c, cmp: st.cmp }));
@@ -30,6 +33,9 @@ const saveNotes = () => localStorage.setItem("bible_notes", JSON.stringify(NOTES
 const saveHist = () => localStorage.setItem("bible_history", JSON.stringify(HIST));
 const savePlan = () => localStorage.setItem("bible_plan", JSON.stringify(PLAN));
 const saveSet = () => localStorage.setItem("bible_settings", JSON.stringify(SET));
+const saveTopics = () => localStorage.setItem("bible_topics", JSON.stringify(TOPICS));
+const saveStudy = () => localStorage.setItem("bible_study", JSON.stringify(STUDY));
+const saveTrail = () => localStorage.setItem("bible_trail", JSON.stringify(TRAIL));
 
 const esc = L.esc;
 const keyOf = (bi, ci, v) => bi + ":" + ci + ":" + v;
@@ -246,6 +252,8 @@ pop.querySelectorAll("button").forEach((b) => {
       if (txt !== null) { if (txt.trim()) NOTES[k] = txt.trim(); else delete NOTES[k]; saveNotes(); refresh(); } }
     else if (a === "copy") { copyVerse(t.bi, t.ci, t.v); }
     else if (a === "xref") { if (await guard(ensureXref())) showXref(t.bi, t.ci, t.v); }
+    else if (a === "topic") { tagVerse(t.bi, t.ci, t.v); }
+    else if (a === "trail") { startTrail(t.bi, t.ci, t.v); }
   });
 });
 function refresh() { view === "favs" ? showFavs() : (st.cmp ? renderCompare() : render()); }
@@ -273,9 +281,10 @@ async function openStrong(wordEl) {
   const lg = L.strongLang(num);
   spop.innerHTML = `<div><span class="num">${num}</span> <span class="lemma" lang="${lg.lang}" dir="${lg.dir}">${esc(e.l || "")}</span> <span class="translit">${esc(e.t || "")}</span></div>
     <div style="margin-top:6px">${esc(e.d || "—")}</div>
-    <div class="more"><button id="spopMore">📚 Voir dans le dictionnaire</button></div>`;
+    <div class="more"><button id="spopMore">📚 Dictionnaire</button> <button id="spopStudy">🔬 Étudier ce mot</button></div>`;
   placePop(wordEl, spop);
   $("#spopMore").onclick = (ev) => { ev.stopPropagation(); spop.classList.remove("show"); showDico(num); };
+  $("#spopStudy").onclick = (ev) => { ev.stopPropagation(); spop.classList.remove("show"); showStudy("word", num); };
   $("#spopMore").focus();
 }
 document.addEventListener("click", () => { pop.classList.remove("show"); spop.classList.remove("show"); });
@@ -402,6 +411,194 @@ function dicoSearch(q) {
   box.innerHTML = res.length ? `<p class="small muted">${res.length}${res.length >= max ? "+" : ""} résultat(s)</p>` + res.map(([n, e]) => entryHtml(n, e)).join("") : `<p class="muted">Aucun résultat pour « ${esc(q)} ».</p>`;
 }
 
+/* ======================================================================
+   ÉTUDE BIBLIQUE EN PROFONDEUR (hub à onglets)
+   1) Étude de mot (concordance Strong)   2) Fiche inductive O/I/A
+   3) Étude thématique (tags)             4) Parcours de références croisées
+   ====================================================================== */
+const studyState = { tab: "word" };
+let sheetTimer;
+
+function studyTabs(active) {
+  const tabs = [["word", "🔤 Étude de mot"], ["sheet", "📝 Fiche d'étude"], ["topics", "🏷 Thèmes"], ["trail", "🧭 Parcours"]];
+  return `<div class="tabs" role="tablist" aria-label="Sections d'étude">` +
+    tabs.map(([k, t]) => `<button role="tab" aria-selected="${k === active}" data-tab="${k}">${t}</button>`).join("") + `</div>`;
+}
+async function showStudy(tab, arg) {
+  tab = tab || studyState.tab || "word"; studyState.tab = tab;
+  view = "study"; pop.classList.remove("show"); spop.classList.remove("show"); stopAudio();
+  reader.innerHTML = `<h2 class="title">🔬 Étude biblique en profondeur</h2>${studyTabs(tab)}<div id="studyBody"></div>`;
+  reader.parentElement.scrollTop = 0; reader.focus();
+  reader.querySelectorAll(".tabs [data-tab]").forEach((el) => el.onclick = () => showStudy(el.dataset.tab));
+  if (tab === "word") await studyWord(arg);
+  else if (tab === "sheet") studySheet(arg);
+  else if (tab === "topics") studyTopics(arg);
+  else if (tab === "trail") await studyTrail();
+}
+
+/* --- 1) Étude de mot : définition Strong + toutes les occurrences --- */
+async function studyWord(num) {
+  const body = $("#studyBody"); if (!body) return;
+  body.innerHTML = `<div class="toolbar"><label class="visually-hidden" for="wq">Numéro Strong</label>
+    <input id="wq" placeholder="Numéro Strong : G26, H157…" style="flex:1;min-width:180px" value="${num ? esc(num) : (studyState.lastWord || "")}">
+    <button id="wgo">Étudier</button></div>
+    <p class="lead small">Entre un numéro Strong (ou clique un mot en lecture <b>KJV</b>) : définition hébreu/grec + tous ses emplois dans l'Écriture.</p>
+    <div id="wres"></div>`;
+  const run = () => wordRun($("#wq").value);
+  $("#wgo").onclick = run; $("#wq").addEventListener("keydown", (e) => { if (e.key === "Enter") run(); });
+  const q = num || studyState.lastWord; if (q) wordRun(q); else $("#wq").focus();
+}
+function occHtml(key, num) {
+  const segs = window.KJVI[key]; if (!segs) return "";
+  return segs.map((seg) => { const t = esc(seg[0]); return seg[1] === num ? `<mark>${t}</mark> ` : t + " "; }).join("");
+}
+async function wordRun(q) {
+  const box = $("#wres"); if (!box) return;
+  const m = (q || "").trim().match(/^([GgHh])\s*0*(\d+)$/);
+  if (!m) { box.innerHTML = `<p class="muted">Entre un numéro Strong valide, ex. <b>G26</b> ou <b>H157</b>.</p>`; return; }
+  const num = m[1].toUpperCase() + m[2]; studyState.lastWord = num;
+  box.innerHTML = `<p class="muted" role="status">Chargement de l'interlinéaire…</p>`;
+  try { await ensureStrong(); await ensureVersion("kjv"); }
+  catch (e) { box.innerHTML = `<p class="muted">⚠️ ${esc(e.message)}</p>`; return; }
+  const e = window.STRONG[num];
+  const occ = L.concordance(window.KJVI, num);
+  const totalHits = occ.reduce((s, o) => s + o[1], 0);
+  let h = "";
+  if (e) { const lg = L.strongLang(num);
+    h += `<section class="entry"><div><span class="num">${num}</span> <span class="lemma" lang="${lg.lang}" dir="${lg.dir}">${esc(e.l || "")}</span> <span class="translit">${esc(e.t || "")}</span></div>
+      <div class="lbl">Définition</div><div>${esc(e.d || "—")}</div>
+      <div class="lbl">Usage (KJV)</div><div class="muted">${esc(e.k || "—")}</div></section>`;
+  } else h += `<p class="muted">Numéro « ${esc(num)} » absent du dictionnaire.</p>`;
+  h += `<div class="section-label">Occurrences <span class="pill">${totalHits} dans ${occ.length} verset(s)</span></div>`;
+  if (!occ.length) h += `<p class="muted">Aucune occurrence dans l'interlinéaire (versification KJV).</p>`;
+  else {
+    const max = 250, shown = occ.slice(0, max);
+    h += `<div class="results">`;
+    for (const [key, cnt] of shown) { const [bi, ci, v] = key.split(".").map(Number); const bk = bible().books[bi]; if (!bk) continue;
+      h += `<button class="result" data-bi="${bi}" data-ci="${ci}" data-v="${v}"><span class="ref">${esc(bk.n)} ${ci + 1}:${v}${cnt > 1 ? ` ·×${cnt}` : ""}</span><span>${occHtml(key, num)}</span></button>`; }
+    h += `</div>`;
+    if (occ.length > max) h += `<p class="small muted">Les ${max} premières occurrences sur ${occ.length}.</p>`;
+  }
+  box.innerHTML = h; wireResultNav();
+}
+
+/* --- 2) Fiche d'étude inductive : Observation / Interprétation / Application / Prière --- */
+function studySheet(arg) {
+  const body = $("#studyBody"); if (!body) return;
+  let bi = st.b, ci = st.c;
+  if (arg && typeof arg === "object") { bi = arg.bi; ci = arg.ci; }
+  const bk = bible().books[bi], key = bi + "." + ci, s = STUDY[key] || {};
+  const fields = [["o", "👁 Observation", "Que dit le texte ? (faits, contexte, répétitions, mots-clés)"],
+    ["i", "💡 Interprétation", "Que signifie-t-il ? (sens, message central, à qui, pourquoi)"],
+    ["a", "🎯 Application", "Comment l'appliquer concrètement à ma vie ?"],
+    ["p", "🙏 Prière", "Ma réponse à Dieu à partir de ce passage"]];
+  let h = `<div class="toolbar"><span>Chapitre étudié :</span> <b>${esc(bk.n)} ${ci + 1}</b>
+    <button id="sheetGo">📖 Ouvrir en lecture</button></div>
+    <p class="lead small">Méthode inductive (O/I/A). Sauvegarde automatique dans ce navigateur.</p>`;
+  for (const [k, label, ph] of fields)
+    h += `<div class="study-field"><label for="sf_${k}" class="lbl">${label}</label>
+      <textarea id="sf_${k}" data-k="${k}" rows="4" placeholder="${esc(ph)}">${esc(s[k] || "")}</textarea></div>`;
+  h += `<p id="sheetSaved" class="small muted" aria-live="polite">${s.u ? "Enregistré le " + new Date(s.u).toLocaleString("fr-FR") : ""}</p>`;
+  const saved = Object.keys(STUDY).filter((k) => ["o", "i", "a", "p"].some((f) => STUDY[k][f]));
+  if (saved.length) {
+    saved.sort((a, b) => { const A = a.split("."), B = b.split("."); return (A[0] - B[0]) || (A[1] - B[1]); });
+    h += `<div class="section-label">Mes fiches <span class="pill">${saved.length}</span></div><div class="results">`;
+    for (const k of saved) { const [b2, c2] = k.split(".").map(Number); const bb = bible().books[b2]; if (!bb) continue;
+      h += `<button class="result" data-sheet="${b2}.${c2}"><span class="ref">${esc(bb.n)} ${c2 + 1}</span></button>`; }
+    h += `</div>`;
+  }
+  body.innerHTML = h;
+  $("#sheetGo").onclick = () => goTo(bi, ci, 1);
+  body.querySelectorAll("textarea[data-k]").forEach((ta) => ta.addEventListener("input", () => {
+    clearTimeout(sheetTimer); sheetTimer = setTimeout(() => {
+      const cur = STUDY[key] || {}; cur[ta.dataset.k] = ta.value.trim();
+      let any = false; for (const f of ["o", "i", "a", "p"]) { if (cur[f]) any = true; else delete cur[f]; }
+      if (any) { cur.u = Date.now(); STUDY[key] = cur; } else delete STUDY[key];
+      saveStudy(); const sv = $("#sheetSaved"); if (sv) sv.textContent = any ? "Enregistré le " + new Date().toLocaleString("fr-FR") : "";
+    }, 400);
+  }));
+  body.querySelectorAll("[data-sheet]").forEach((el) => el.onclick = () => { const [b2, c2] = el.dataset.sheet.split(".").map(Number); showStudy("sheet", { bi: b2, ci: c2 }); });
+}
+
+/* --- 3) Étude thématique (tags libres) --- */
+function tagVerse(bi, ci, v) {
+  const key = keyOf(bi, ci, v);
+  const input = prompt("Thèmes pour ce verset (séparés par des virgules) :", (TOPICS[key] || []).join(", "));
+  if (input === null) return;
+  const tags = L.parseTags(input);
+  if (tags.length) TOPICS[key] = tags; else delete TOPICS[key];
+  saveTopics(); refresh(); toast(tags.length ? "Classé : " + tags.join(", ") : "Thèmes retirés");
+}
+function untag(key, theme) {
+  if (!TOPICS[key]) return;
+  TOPICS[key] = TOPICS[key].filter((t) => t !== theme);
+  if (!TOPICS[key].length) delete TOPICS[key];
+  saveTopics();
+}
+function studyTopics(theme) {
+  const body = $("#studyBody"); if (!body) return;
+  const groups = L.topicGroups(TOPICS);
+  const themes = Object.keys(groups).sort((a, b) => a.localeCompare(b, "fr"));
+  if (!theme) {
+    let h = `<p class="lead small">Classe un verset par thème via 🏷 (clic sur son n° en lecture). Clique un thème pour revoir ses versets.</p>`;
+    if (!themes.length) h += `<p class="muted">Aucun thème pour l'instant.</p>`;
+    else { h += `<div class="chips">`;
+      for (const t of themes) h += `<button class="chip" data-theme="${esc(t)}">${esc(t)} <span class="pill">${groups[t].length}</span></button>`;
+      h += `</div>`; }
+    body.innerHTML = h;
+    body.querySelectorAll("[data-theme]").forEach((el) => el.onclick = () => studyTopics(el.dataset.theme));
+    return;
+  }
+  const verses = groups[theme] || [];
+  let h = `<div class="toolbar"><button id="topicsBack">‹ Tous les thèmes</button> <b>🏷 ${esc(theme)}</b> <span class="pill">${verses.length}</span></div><div class="results">`;
+  for (const key of verses) { const [bi, ci, v] = key.split(":").map(Number); const bk = bible().books[bi]; if (!bk) continue;
+    const vs = (bk.c[ci] || []).find((x) => x.v === v);
+    h += `<div class="result-row"><button class="result" data-bi="${bi}" data-ci="${ci}" data-v="${v}"><span class="ref">${esc(bk.n)} ${ci + 1}:${v}</span><span>${esc(vs ? vs.t : "")}</span></button><button class="untag" data-key="${key}" data-theme="${esc(theme)}" aria-label="Retirer du thème ${esc(theme)}">✕</button></div>`; }
+  h += `</div>`;
+  body.innerHTML = h;
+  $("#topicsBack").onclick = () => studyTopics();
+  wireResultNav();
+  body.querySelectorAll(".untag").forEach((el) => el.onclick = (e) => { e.stopPropagation(); untag(el.dataset.key, el.dataset.theme); toast("Thème retiré"); studyTopics(theme); });
+}
+
+/* --- 4) Parcours de références croisées (chaîne d'étude guidée) --- */
+function startTrail(bi, ci, v) { TRAIL = [[bi, ci, v]]; saveTrail(); showStudy("trail"); }
+async function studyTrail() {
+  const body = $("#studyBody"); if (!body) return;
+  if (!TRAIL.length) {
+    body.innerHTML = `<p class="lead small">Un parcours suit les <b>références croisées</b> de verset en verset, avec un fil d'Ariane.</p>
+      <div class="toolbar"><button id="trailStart">🧭 Démarrer depuis ${esc(bible().books[st.b].n)} ${st.c + 1}:1</button></div>
+      <p class="muted small">Astuce : sur n'importe quel verset (clic sur son n°), le bouton 🧭 démarre aussi un parcours.</p>`;
+    $("#trailStart").onclick = () => startTrail(st.b, st.c, 1);
+    return;
+  }
+  let h = `<nav class="breadcrumb" aria-label="Fil du parcours">`;
+  TRAIL.forEach(([bi, ci, v], idx) => { const bk = bible().books[bi];
+    h += `${idx ? '<span class="sep" aria-hidden="true">›</span>' : ""}<button class="crumb" data-idx="${idx}"${idx === TRAIL.length - 1 ? ' aria-current="step"' : ""}>${esc(bk ? bk.n : "?")} ${ci + 1}:${v}</button>`; });
+  h += `</nav>`;
+  const [bi, ci, v] = TRAIL[TRAIL.length - 1], bk = bible().books[bi];
+  const vs = (bk.c[ci] || []).find((x) => x.v === v);
+  h += `<section class="entry"><div class="lbl">Verset courant — ${esc(bk.n)} ${ci + 1}:${v}</div>
+    <p class="votd" style="font-size:1.05em">${vs ? esc(vs.t) : "(texte indisponible hors-ligne)"}</p>
+    <div class="toolbar"><button id="trailRead">📖 Lire</button><button id="trailBack"${TRAIL.length < 2 ? " disabled" : ""}>‹ Reculer</button><button id="trailClear">Effacer</button></div></section>
+    <div class="section-label">Continuer vers…</div><div id="trailXref"><p class="muted" role="status">Chargement des références…</p></div>`;
+  body.innerHTML = h;
+  body.querySelectorAll(".crumb").forEach((el) => el.onclick = () => { TRAIL = TRAIL.slice(0, +el.dataset.idx + 1); saveTrail(); studyTrail(); });
+  $("#trailRead").onclick = () => goTo(bi, ci, v);
+  $("#trailBack").onclick = () => { if (TRAIL.length > 1) { TRAIL.pop(); saveTrail(); studyTrail(); } };
+  $("#trailClear").onclick = () => { TRAIL = []; saveTrail(); studyTrail(); };
+  try { await ensureXref(); } catch (e) {}
+  const box = $("#trailXref"); if (!box) return;
+  const refs = (window.XREF && window.XREF[`${bi}.${ci}.${v}`]) || [];
+  if (!refs.length) { box.innerHTML = `<p class="muted">Aucune référence croisée depuis ce verset. Recule ou efface le parcours.</p>`; return; }
+  let r = `<div class="results">`;
+  for (const [rb, rc, rv] of refs) { const tb = bible().books[rb]; if (!tb) continue;
+    const tv = (tb.c[rc] || []).find((x) => x.v === rv);
+    r += `<button class="result trail-step" data-bi="${rb}" data-ci="${rc}" data-v="${rv}"><span class="ref">${esc(tb.n)} ${rc + 1}:${rv}</span><span>${esc(tv ? tv.t : "")}</span></button>`; }
+  r += `</div>`; box.innerHTML = r;
+  box.querySelectorAll(".trail-step").forEach((el) => el.onclick = () => { TRAIL.push([+el.dataset.bi, +el.dataset.ci, +el.dataset.v]); saveTrail(); studyTrail(); });
+}
+
 /* ---------- recherche plein-texte ---------- */
 let stimer;
 search.addEventListener("input", () => { clearTimeout(stimer); stimer = setTimeout(runSearch, 220); });
@@ -441,7 +638,7 @@ function showSettings() {
     <p class="small muted">Le <b>proxy</b> (dossier <code>proxy/</code>, déployable sur Vercel) garde la clé côté serveur et règle le CORS — recommandé pour un usage public.</p>
     <div id="apiStatus" class="small muted" aria-live="polite"></div>`;
   h += `<div class="section-label">Mes données</div><div class="toolbar"><button id="exp">⬇️ Exporter (.json)</button><button id="imp">⬆️ Importer</button></div>
-    <p class="small muted">${Object.keys(HL).length} surlignage(s) · ${Object.keys(NOTES).length} note(s), stockés dans ce navigateur.</p>`;
+    <p class="small muted">${Object.keys(HL).length} surlignage(s) · ${Object.keys(NOTES).length} note(s) · ${Object.keys(TOPICS).length} verset(s) classé(s) · ${Object.keys(STUDY).length} fiche(s) d'étude, stockés dans ce navigateur.</p>`;
   reader.innerHTML = h; reader.parentElement.scrollTop = 0; reader.focus();
   reader.querySelectorAll("[data-set]").forEach((el) => el.onclick = () => {
     let val = el.dataset.val; if (el.dataset.set === "size" || el.dataset.set === "leading") val = parseFloat(val);
@@ -465,7 +662,7 @@ function showSettings() {
   $("#exp").onclick = exportData; $("#imp").onclick = () => $("#importFile").click();
 }
 function exportData() {
-  const data = { highlights: HL, notes: NOTES, plan: PLAN, settings: SET, exported: new Date().toISOString() };
+  const data = { highlights: HL, notes: NOTES, topics: TOPICS, study: STUDY, plan: PLAN, settings: SET, exported: new Date().toISOString() };
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
   a.download = "bible-mes-donnees.json"; a.click(); URL.revokeObjectURL(a.href);
@@ -475,9 +672,11 @@ $("#importFile").addEventListener("change", (e) => {
   rd.onload = () => { try { const d = JSON.parse(rd.result);
       if (d.highlights) HL = Object.assign(HL, d.highlights);
       if (d.notes) NOTES = Object.assign(NOTES, d.notes);
+      if (d.topics) TOPICS = Object.assign(TOPICS, d.topics);
+      if (d.study) STUDY = Object.assign(STUDY, d.study);
       if (d.plan) PLAN = Object.assign(PLAN, d.plan);
       if (d.settings) { SET = Object.assign(SET, d.settings); applySettings(); }
-      saveHL(); saveNotes(); savePlan(); saveSet(); toast("Import réussi ✅"); showSettings();
+      saveHL(); saveNotes(); saveTopics(); saveStudy(); savePlan(); saveSet(); toast("Import réussi ✅"); showSettings();
     } catch (err) { toast("Fichier invalide"); } };
   rd.readAsText(f); e.target.value = "";
 });
@@ -507,6 +706,7 @@ $("#compare").addEventListener("click", async (e) => {
 });
 $("#favs").addEventListener("click", () => view === "favs" ? render() : showFavs());
 $("#dico").addEventListener("click", () => view === "dico" ? render() : showDico());
+$("#study").addEventListener("click", () => view === "study" ? render() : showStudy());
 $("#plan").addEventListener("click", () => view === "plan" ? render() : showPlan());
 $("#settings").addEventListener("click", () => view === "settings" ? render() : showSettings());
 document.addEventListener("keydown", (e) => {

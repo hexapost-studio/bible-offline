@@ -49,3 +49,31 @@ test("ttsLang : KJV en anglais, sinon français", () => {
   assert.strictEqual(L.ttsLang("kjv"), "en-US");
   assert.strictEqual(L.ttsLang("ls1910"), "fr-FR");
 });
+
+test("concordance : trouve les versets d'un numéro Strong, compte et trie", () => {
+  const KJVI = {
+    "43.2.15": [["God", "G2316"], ["so", null], ["loved", "G25"]],
+    "0.0.0":   [["In", null], ["God", "G2316"]],
+    "44.4.31": [["love", "G25"], ["love", "G25"]],
+  };
+  const c = L.concordance(KJVI, "G25");
+  assert.deepStrictEqual(c, [["43.2.15", 1], ["44.4.31", 2]]); // trié canonique, comptage correct
+  assert.deepStrictEqual(L.concordance(KJVI, "G2316"), [["0.0.0", 1], ["43.2.15", 1]]);
+  assert.deepStrictEqual(L.concordance(KJVI, "G404"), []);     // absent
+  assert.deepStrictEqual(L.concordance(null, "G25"), []);      // robustesse
+});
+
+test("topicGroups : regroupe les versets par thème, triés", () => {
+  // clés au format des notes/surlignages : "bi:ci:v" (deux-points)
+  const TOPICS = { "43:2:15": ["amour", "foi"], "44:4:31": ["amour"], "0:0:0": ["foi"] };
+  const g = L.topicGroups(TOPICS);
+  assert.deepStrictEqual(g.amour, ["43:2:15", "44:4:31"]);
+  assert.deepStrictEqual(g.foi, ["0:0:0", "43:2:15"]);
+  assert.deepStrictEqual(L.topicGroups(null), {});
+});
+
+test("parseTags : minuscule, trim, déduplique, ignore le vide", () => {
+  assert.deepStrictEqual(L.parseTags("Foi, Grâce ,foi,"), ["foi", "grâce"]);
+  assert.deepStrictEqual(L.parseTags("  "), []);
+  assert.deepStrictEqual(L.parseTags(null), []);
+});
