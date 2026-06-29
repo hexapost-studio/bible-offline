@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Bible">
+  <!-- Maskable : fond plein bord-à-bord (l'OS applique la forme), motif dans la zone de sécurité -->
+  <rect width="512" height="512" fill="#0f1115"/>
+  <g transform="translate(256 256) scale(0.72)">
+    <!-- reliure -->
+    <rect x="-8" y="-150" width="16" height="300" rx="6" fill="#333a48"/>
+    <!-- page gauche -->
+    <path d="M-8 -150 C -70 -168 -150 -160 -176 -150 L -176 150 C -150 140 -70 148 -8 150 Z" fill="#1e222b" stroke="#333a48" stroke-width="6"/>
+    <!-- page droite -->
+    <path d="M8 -150 C 70 -168 150 -160 176 -150 L 176 150 C 150 140 70 148 8 150 Z" fill="#1e222b" stroke="#333a48" stroke-width="6"/>
+    <!-- lignes de texte -->
+    <g stroke="#8fb0ff" stroke-width="8" stroke-linecap="round" opacity="0.85">
+      <line x1="-150" y1="-96" x2="-44" y2="-100"/>
+      <line x1="-150" y1="-56" x2="-44" y2="-60"/>
+      <line x1="-150" y1="-16" x2="-44" y2="-20"/>
+      <line x1="44" y1="-100" x2="150" y2="-96"/>
+      <line x1="44" y1="-60" x2="150" y2="-56"/>
+      <line x1="44" y1="-20" x2="150" y2="-16"/>
+    </g>
+    <!-- signet -->
+    <path d="M70 -150 L 110 -150 L 110 -40 L 90 -64 L 70 -40 Z" fill="#ffd58a"/>
+  </g>
+</svg>

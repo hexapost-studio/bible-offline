@@ -122,6 +122,11 @@ function applySettings() {
   root.setProperty("--reading-size", (SET.size || 19) + "px");
   root.setProperty("--reading-leading", String(SET.leading || 1.75));
   root.setProperty("--reading-font", SET.font === "sans" ? "var(--ui-font)" : '"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif');
+  // barre du navigateur synchronisée au thème (PWA / mobile)
+  const bg = SET.theme === "light" ? "#f7f8fa" : SET.theme === "sepia" ? "#f3e9d6" : "#0f1115";
+  let meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) { meta = document.createElement("meta"); meta.name = "theme-color"; document.head.appendChild(meta); }
+  meta.setAttribute("content", bg);
 }
 
 /* ---------- sélecteurs ---------- */
