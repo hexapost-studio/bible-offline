@@ -201,12 +201,12 @@ function render() {
   // Versions en ligne (sous droits) : attribution obligatoire ; lecture audio interdite (texte ≠ audio).
   if (online) h += onlineAttribution(bible());
   else h += `<div class="audio-bar"><button id="play" aria-label="Lire le chapitre à voix haute">🔊 Écouter</button>${rateSelectHtml()}</div>`;
-  h += `<div class="chapter-body">`;
+  h += `<div class="chapter-body${SET.layout === "paragraph" ? " paragraph" : ""}">`;
   for (const vs of ch)
     h += `<p class="verse${hlClass(st.b, st.c, vs.v)}" data-bi="${st.b}" data-ci="${st.c}" data-v="${vs.v}" id="v${vs.v}"><button class="vn" aria-label="Annoter le verset ${vs.v}">${vs.v}</button>${verseHTML(st.b, st.c, vs)}${verseNotes(vs)}${noteIcon(st.b, st.c, vs.v)}</p>`;
   h += `</div>` + navHtml();
   reader.innerHTML = h; reader.parentElement.scrollTop = 0;
-  wireNav(); wireVerseInteractions(); const play = $("#play"); if (play) play.onclick = toggleAudio; wireRate(); save();
+  wireNav(); wireVerseInteractions(); const play = $("#play"); if (play) play.onclick = () => toggleAudio(); wireRate(); save();
 }
 // Introduction d'un livre (contexte : auteur, datation, genre), repliable. Attributions « tradition ».
 function bookIntroHtml(bi) {
@@ -786,6 +786,7 @@ function showSettings() {
   h += seg("font", "Police de lecture", [{ v: "serif", t: "Serif" }, { v: "sans", t: "Sans" }], SET.font || "serif");
   h += seg("size", "Taille du texte", [{ v: 16, t: "A−" }, { v: 19, t: "A" }, { v: 22, t: "A+" }, { v: 26, t: "A++" }], SET.size || 19);
   h += seg("leading", "Interligne", [{ v: 1.5, t: "Serré" }, { v: 1.75, t: "Normal" }, { v: 2.1, t: "Aéré" }], SET.leading || 1.75);
+  h += seg("layout", "Disposition", [{ v: "verse", t: "Par verset" }, { v: "paragraph", t: "Paragraphe" }], SET.layout || "verse");
   if (O) h += `<div class="section-label">Versions en ligne (API.Bible)</div>
     <p class="small muted">Active S21 / Semeur / Jérusalem (sous droits, <b>en ligne uniquement</b>, non stockées). <a href="https://scripture.api.bible" target="_blank" rel="noopener">Obtenir une clé</a>. Les versions indisponibles restent grisées.</p>
     <div class="toolbar"><label class="visually-hidden" for="apiKey">Clé API.Bible</label>

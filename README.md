@@ -22,7 +22,7 @@ HTML qui s'ouvre dans n'importe quel navigateur. Pensé selon une philosophie de
 | 📖 | **Dictionnaire Strong** | 14 197 entrées hébreu + grec, recherche par numéro ou mot ; **définitions en français** (traduction auto) avec repli anglais |
 | 🔬 | **Étude en profondeur** | Hub à 4 onglets : étude de mot, fiche (O/I/A · 3C · 7 étapes + check-list des biais), thèmes (+ **index Nave**), parcours |
 | 💾 | **Sauvegarde auto** | Miroir local horodaté de tes annotations + rappel d'export + restauration |
-| ⚙️ | **Réglages de lecture** | Thème sombre / clair / sépia, police serif ou sans, taille, interligne |
+| ⚙️ | **Réglages de lecture** | Thème sombre / clair / sépia, police serif ou sans, taille, interligne, **disposition verset/paragraphe** |
 | 💾 | **Export / Import** | Sauvegarde des annotations en `.json`, transférable |
 | 📲 | **Installable (PWA)** | « Ajouter à l'écran d'accueil », fonctionne hors-ligne (service worker) |
 

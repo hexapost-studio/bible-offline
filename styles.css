@@ -83,6 +83,11 @@ h2.title { font-size:clamp(20px,4vw,26px); font-weight:800; margin:var(--sp1) 0 
 .hl1{background:var(--hl1)} .hl2{background:var(--hl2)} .hl3{background:var(--hl3)} .hl4{background:var(--hl4)}
 .verse.active { outline:2px solid var(--accent); }
 .verse.speaking { background:var(--panel2); }
+/* Mode paragraphe : les versets s'enchaînent en flux continu */
+.chapter-body.paragraph { text-align:justify; }
+.chapter-body.paragraph .verse { display:inline; margin:0; padding:0; }
+.chapter-body.paragraph .verse + .verse::before { content:" "; }
+.chapter-body.paragraph .vn { margin-left:var(--sp1); }
 .w { cursor:pointer; border-radius:4px; padding:0 1px; }
 .w[data-s]:hover, .w[data-s]:focus-visible { background:var(--panel2); text-decoration:underline dotted; }
 .w.plain { cursor:default; }
