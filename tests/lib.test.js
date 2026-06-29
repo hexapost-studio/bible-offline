@@ -77,3 +77,20 @@ test("parseTags : minuscule, trim, déduplique, ignore le vide", () => {
   assert.deepStrictEqual(L.parseTags("  "), []);
   assert.deepStrictEqual(L.parseTags(null), []);
 });
+
+test("gabarits d'étude : 3 templates, clés de champ uniques", () => {
+  assert.deepStrictEqual(Object.keys(L.STUDY_TEMPLATES), ["oia", "c3", "s7"]);
+  const keys = L.studyFieldKeys();
+  assert.strictEqual(new Set(keys).size, keys.length, "clés de champ en double entre gabarits");
+  assert.ok(keys.includes("o") && keys.includes("c1") && keys.includes("s7"));
+  assert.strictEqual(L.STUDY_BIASES.length, 6);
+});
+
+test("hasSheetContent : détecte champ rempli ou biais coché", () => {
+  assert.strictEqual(L.hasSheetContent(null), false);
+  assert.strictEqual(L.hasSheetContent({ tpl: "oia", u: 123 }), false); // méta seules
+  assert.strictEqual(L.hasSheetContent({ o: "note" }), true);
+  assert.strictEqual(L.hasSheetContent({ s7: "synthèse" }), true);
+  assert.strictEqual(L.hasSheetContent({ bias: { finalisme: 1 } }), true);
+  assert.strictEqual(L.hasSheetContent({ bias: {} }), false);
+});

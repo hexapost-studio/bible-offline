@@ -171,6 +171,67 @@ def build_nave() -> None:
     write_js("nave.js", "NAVE", nave)
 
 
+# Divisions/genres par index canonique 0..65 (catégorisation standard, libellés FR)
+GENRES = [(0, 4, "Pentateuque (Loi)"), (5, 16, "Livres historiques"),
+          (17, 21, "Livres poétiques et de sagesse"), (22, 26, "Grands prophètes"),
+          (27, 38, "Petits prophètes"), (39, 42, "Évangiles"), (43, 43, "Histoire (Actes)"),
+          (44, 56, "Épîtres de Paul"), (57, 64, "Épîtres générales"), (65, 65, "Apocalypse (prophétie)")]
+# Noms d'auteurs (writer_id sans suffixe) → français ; sinon on garde le nom tel quel.
+WRITER_FR = {"Moses": "Moïse", "Joshua": "Josué", "Samuel": "Samuel", "David": "David",
+    "Solomon": "Salomon", "Isaiah": "Ésaïe", "Jeremiah": "Jérémie", "Ezekiel": "Ézéchiel",
+    "Daniel": "Daniel", "Hosea": "Osée", "Joel": "Joël", "Amos": "Amos", "Obadiah": "Abdias",
+    "Jonah": "Jonas", "Micah": "Michée", "Nahum": "Nahum", "Habakkuk": "Habacuc",
+    "Zephaniah": "Sophonie", "Haggai": "Aggée", "Zechariah": "Zacharie", "Malachi": "Malachie",
+    "Ezra": "Esdras", "Nehemiah": "Néhémie", "Matthew": "Matthieu", "Mark": "Marc", "Luke": "Luc",
+    "John": "Jean", "Paul": "Paul", "Saul": "Paul", "Peter": "Pierre", "Simon": "Pierre",
+    "James": "Jacques", "Jude": "Jude", "Judas": "Jude", "Apollos": "incertain (tradition : Apollos)",
+    "Job": "Job", "Mordecai": "incertain (tradition : Mardochée)", "Zabud": "incertain",
+    "Unknown": "incertain"}
+
+
+def genre_for(idx: int) -> str:
+    for a, b, name in GENRES:
+        if a <= idx <= b:
+            return name
+    return ""
+
+
+def fmt_year(y: str) -> str | None:
+    try:
+        n = int(y)
+    except (ValueError, TypeError):
+        return None
+    return f"{-n} av. J.-C." if n < 0 else f"{n} apr. J.-C."
+
+
+def build_intros() -> None:
+    """Introductions par livre (auteur, datation, genre). Auteur+dates issus du CSV
+    BradyStephenson/bible-data (CC-BY) ; genre déduit de l'index canonique."""
+    import csv as _csv
+    raw = fetch("https://raw.githubusercontent.com/BradyStephenson/bible-data/main/BibleData-Book.csv").decode("utf-8")
+    by_usx = {}
+    for row in _csv.DictReader(io.StringIO(raw)):
+        usx = (row.get("usx_code") or "").strip().upper()
+        if usx:
+            by_usx[usx] = row
+    intros = {}
+    for idx, usx in enumerate(USFM):
+        row = by_usx.get(usx)
+        entry = {"genre": genre_for(idx)}
+        if row:
+            wid = (row.get("writer_id") or "").strip()
+            base = wid.rsplit("_", 1)[0].replace("_", " ") if wid else ""
+            if base:
+                entry["author"] = WRITER_FR.get(base, base)
+            d1, d2 = fmt_year(row.get("written_start_date")), fmt_year(row.get("written_end_date"))
+            if d1 and d2 and d1 != d2:
+                entry["date"] = f"env. {d1.split(' ')[0]}–{d2}"
+            elif d1:
+                entry["date"] = f"env. {d1}"
+        intros[str(idx)] = entry
+    write_js("intros.js", "INTROS", intros)
+
+
 def build_interlinear(kjv_raw: dict) -> None:
     sp = json.loads(fetch("https://raw.githubusercontent.com/1John419/kjs/master/json/strong_pure.json"))
     mi = {m["k"]: m["v"] for m in sp["maps"]}
@@ -197,7 +258,8 @@ def main():
     print("2/5 Références croisées…"); build_crossrefs()
     print("3/5 Dictionnaire Strong…"); build_strong_dict()
     print("4/5 Interlinéaire KJV…");  build_interlinear(kjv)
-    print("5/5 Index thématique Nave…"); build_nave()
+    print("5/6 Index thématique Nave…"); build_nave()
+    print("6/6 Introductions par livre…"); build_intros()
     print("Terminé. Ouvre index.html.")
 
 

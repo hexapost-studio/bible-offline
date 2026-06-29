@@ -150,6 +150,13 @@ mark { background:var(--hitmark); color:var(--txt); border-radius:3px; padding:0
 .study-field textarea { width:100%; resize:vertical; border:1px solid var(--line); border-radius:var(--radius);
   background:var(--panel2); padding:var(--sp3); line-height:1.6; min-height:88px; }
 .study-field textarea:focus-visible { border-color:var(--accent); }
+.bias { margin:var(--sp3) 0; border:1px solid var(--line); border-radius:var(--radius); padding:var(--sp2) var(--sp3); }
+.bias > summary { cursor:pointer; font-weight:600; }
+.bias-list { display:flex; flex-direction:column; gap:var(--sp2); margin-top:var(--sp3); }
+.bias-item { display:flex; gap:var(--sp2); align-items:baseline; font-size:.92em; }
+.bias-item input { flex:0 0 auto; margin-top:2px; }
+.bookintro { margin:0 0 var(--sp4); border:1px solid var(--line); border-radius:var(--radius); padding:var(--sp2) var(--sp3); }
+.bookintro > summary { cursor:pointer; color:var(--accent2); font-weight:600; }
 .chips { display:flex; gap:var(--sp2); flex-wrap:wrap; }
 .chip { border:1px solid var(--line); border-radius:999px; padding:var(--sp2) var(--sp3); background:var(--panel); }
 .chip:hover { border-color:var(--accent); }

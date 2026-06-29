@@ -11,7 +11,8 @@ HTML qui s'ouvre dans n'importe quel navigateur. Pensé selon une philosophie de
 | 📚 | **4 traductions** | Louis Segond 1910, Darby, Martin 1744, King James Version |
 | 🔤 | **Interlinéaire Strong** | En KJV, chaque mot est cliquable → lemme hébreu/grec, translittération, définition |
 | 🔗 | **Références croisées** | ~29 000 versets reliés (openbible.info), cliquables |
-| 🔊 | **Lecture audio** | Lit le chapitre à voix haute (synthèse vocale, hors-ligne) — *traductions libres uniquement* |
+| 🔊 | **Lecture audio** | Lit le chapitre à voix haute (synthèse vocale, hors-ligne), **vitesse réglable** et **départ depuis un verset choisi** — *traductions libres uniquement* |
+| ℹ️ | **Introduction par livre** | Repères de contexte en tête de livre : genre littéraire, auteur et datation (traditionnels) |
 | 🗓 | **Plan de lecture** | « Bible en 1 an », suivi de progression |
 | 🏠 | **Accueil** | Verset du jour + reprise de lecture + sélecteur de livres AT/NT |
 | 🔍 | **Recherche** plein-texte | Dans toute la traduction active |
@@ -19,7 +20,7 @@ HTML qui s'ouvre dans n'importe quel navigateur. Pensé selon une philosophie de
 | ★ | **Surlignages & notes** | 4 couleurs + notes par verset (stockés localement) |
 | 📋 | **Copier / partager** | Un verset avec sa référence (Web Share API) |
 | 📖 | **Dictionnaire Strong** | 14 197 entrées hébreu + grec, recherche par numéro ou mot ; **définitions en français** (traduction auto) avec repli anglais |
-| 🔬 | **Étude en profondeur** | Hub à 4 onglets (voir ci-dessous) : étude de mot, fiche inductive, thèmes (+ **index Nave**), parcours |
+| 🔬 | **Étude en profondeur** | Hub à 4 onglets : étude de mot, fiche (O/I/A · 3C · 7 étapes + check-list des biais), thèmes (+ **index Nave**), parcours |
 | 💾 | **Sauvegarde auto** | Miroir local horodaté de tes annotations + rappel d'export + restauration |
 | ⚙️ | **Réglages de lecture** | Thème sombre / clair / sépia, police serif ou sans, taille, interligne |
 | 💾 | **Export / Import** | Sauvegarde des annotations en `.json`, transférable |
@@ -32,8 +33,10 @@ Le bouton 🔬 ouvre un **hub d'étude** à quatre onglets :
 - **🔤 Étude de mot (concordance Strong)** — saisis un numéro Strong (ou clique un mot en
   lecture KJV → « Étudier ce mot ») : définition hébreu/grec **+ toutes ses occurrences** dans
   l'Écriture, avec le mot surligné dans chaque verset (s'appuie sur l'interlinéaire `KJVI`).
-- **📝 Fiche d'étude inductive (O/I/A)** — par chapitre : Observation / Interprétation /
-  Application / Prière, **sauvegarde automatique**, liste de toutes tes fiches.
+- **📝 Fiche d'étude (plusieurs méthodes)** — par chapitre, au choix : **inductive O/I/A**,
+  **3C** (Contexte / Contenu / Connexion, express) ou **7 étapes** (approfondi : contexte
+  historique, exégèse linguistique, narratif, intertextualité, réception, silences, synthèse).
+  **Sauvegarde automatique** + **check-list des biais** (6 angles morts à surveiller).
 - **🏷 Étude thématique (tags + Nave)** — classe un verset par thème libre via 🏷 (popover du n° de
   verset) ; revois tous les versets d'un thème. Inclut aussi l'**index thématique Nave**
   (Nave's Topical Bible, domaine public, ~4 600 sujets) : cherche un sujet → liste de versets.
@@ -73,7 +76,8 @@ Bible-Offline/
 │   ├── crossref.js       # références croisées (window.XREF)
 │   ├── strong.js         # dictionnaire Strong héb./grec (window.STRONG)
 │   ├── strong_fr.js      # définitions Strong en français, auto (window.STRONG_FR) — optionnel
-│   └── nave.js           # index thématique Nave (window.NAVE)
+│   ├── nave.js           # index thématique Nave (window.NAVE)
+│   └── intros.js         # introductions par livre : genre, auteur, datation (window.INTROS)
 ├── tools/build_data.py        # régénère data/ depuis les sources (reproductible)
 ├── tools/translate_strong.py  # génère strong_fr.js (traduction auto, résumable)
 ├── tools/catalog.py      # liste les Bibles fr accessibles avec ta clé API.Bible

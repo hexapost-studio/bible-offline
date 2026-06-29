@@ -94,6 +94,7 @@ async function ensureVersion(key) {
 const ensureStrong = () => loadScript("data/strong.js");
 const ensureXref = () => loadScript("data/crossref.js");
 const ensureNave = () => loadScript("data/nave.js");
+const ensureIntros = () => loadScript("data/intros.js").catch(() => {}); // optionnel
 // Dico Strong français (traduction auto au build) — optionnel : on ignore son absence.
 const ensureStrongFr = () => loadScript("data/strong_fr.js").catch(() => {});
 async function ensureRead() {
@@ -103,6 +104,7 @@ async function ensureRead() {
     return;
   }
   await ensureVersion(st.v);
+  await ensureIntros();                        // introductions par livre (minuscule, optionnel)
   if (isKJV()) await ensureStrong();
 }
 function loading(msg) { reader.innerHTML = `<p class="muted" role="status">${esc(msg || "Chargement…")}</p>`; setBusy(true); }
@@ -195,6 +197,7 @@ function render() {
   const tag = isKJV() ? '<span class="pill">interlinéaire Strong</span>'
     : `<span class="pill">${esc(bible().name)}${online ? " · 🌐 en ligne" : ""}</span>`;
   let h = `<h2 class="title">${esc(bk.n)} ${st.c + 1} ${tag}</h2>`;
+  h += bookIntroHtml(st.b);
   // Versions en ligne (sous droits) : attribution obligatoire ; lecture audio interdite (texte ≠ audio).
   if (online) h += onlineAttribution(bible());
   else h += `<div class="audio-bar"><button id="play" aria-label="Lire le chapitre à voix haute">🔊 Écouter</button>${rateSelectHtml()}</div>`;
@@ -205,6 +208,19 @@ function render() {
   reader.innerHTML = h; reader.parentElement.scrollTop = 0;
   wireNav(); wireVerseInteractions(); const play = $("#play"); if (play) play.onclick = toggleAudio; wireRate(); save();
 }
+// Introduction d'un livre (contexte : auteur, datation, genre), repliable. Attributions « tradition ».
+function bookIntroHtml(bi) {
+  const I = window.INTROS && window.INTROS[String(bi)];
+  if (!I || (!I.author && !I.date && !I.genre)) return "";
+  const rows = [];
+  if (I.genre) rows.push(`<b>Genre</b> : ${esc(I.genre)}`);
+  if (I.author) rows.push(`<b>Auteur</b> (tradition) : ${esc(I.author)}`);
+  if (I.date) rows.push(`<b>Datation</b> (tradition) : ${esc(I.date)}`);
+  return `<details class="bookintro"><summary>ℹ️ Introduction au livre</summary>
+    <p class="small">${rows.join(" · ")}</p>
+    <p class="small muted">Repères traditionnels (attributions et dates débattues selon les écoles).</p></details>`;
+}
+
 /* sélecteur de vitesse de lecture (TTS) */
 const RATES = [0.75, 1, 1.25, 1.5];
 function rateSelectHtml() {
@@ -557,42 +573,60 @@ async function wordRun(q) {
   box.innerHTML = h; wireResultNav();
 }
 
-/* --- 2) Fiche d'étude inductive : Observation / Interprétation / Application / Prière --- */
+/* --- 2) Fiche d'étude : plusieurs gabarits (O/I/A, 3C, 7 étapes) + check-list des biais --- */
 function studySheet(arg) {
   const body = $("#studyBody"); if (!body) return;
   let bi = st.b, ci = st.c;
   if (arg && typeof arg === "object") { bi = arg.bi; ci = arg.ci; }
   const bk = bible().books[bi], key = bi + "." + ci, s = STUDY[key] || {};
-  const fields = [["o", "👁 Observation", "Que dit le texte ? (faits, contexte, répétitions, mots-clés)"],
-    ["i", "💡 Interprétation", "Que signifie-t-il ? (sens, message central, à qui, pourquoi)"],
-    ["a", "🎯 Application", "Comment l'appliquer concrètement à ma vie ?"],
-    ["p", "🙏 Prière", "Ma réponse à Dieu à partir de ce passage"]];
-  let h = `<div class="toolbar"><span>Chapitre étudié :</span> <b>${esc(bk.n)} ${ci + 1}</b>
+  const TPL = L.STUDY_TEMPLATES;
+  const tpl = TPL[studyState.tpl] ? studyState.tpl : (s.tpl && TPL[s.tpl] ? s.tpl : "oia");
+  studyState.tpl = tpl;
+  const persist = () => {
+    const cur = STUDY[key] || {};
+    if (L.hasSheetContent(cur)) { cur.tpl = tpl; cur.u = Date.now(); STUDY[key] = cur; } else delete STUDY[key];
+    saveStudy(); const sv = $("#sheetSaved"); if (sv) sv.textContent = L.hasSheetContent(STUDY[key]) ? "Enregistré le " + new Date().toLocaleString("fr-FR") : "";
+  };
+
+  let h = `<div class="toolbar"><span>Chapitre :</span> <b>${esc(bk.n)} ${ci + 1}</b>
     <button id="sheetGo">📖 Ouvrir en lecture</button></div>
-    <p class="lead small">Méthode inductive (O/I/A). Sauvegarde automatique dans ce navigateur.</p>`;
-  for (const [k, label, ph] of fields)
+    <div class="settings-row"><span>Méthode</span><span class="seg" role="group" aria-label="Méthode d'étude">` +
+    Object.keys(TPL).map((k) => `<button data-tpl="${k}" aria-pressed="${k === tpl}">${esc(TPL[k].name)}</button>`).join("") + `</span></div>`;
+  for (const [k, label, ph] of TPL[tpl].fields)
     h += `<div class="study-field"><label for="sf_${k}" class="lbl">${label}</label>
       <textarea id="sf_${k}" data-k="${k}" rows="4" placeholder="${esc(ph)}">${esc(s[k] || "")}</textarea></div>`;
-  h += `<p id="sheetSaved" class="small muted" aria-live="polite">${s.u ? "Enregistré le " + new Date(s.u).toLocaleString("fr-FR") : ""}</p>`;
-  const saved = Object.keys(STUDY).filter((k) => ["o", "i", "a", "p"].some((f) => STUDY[k][f]));
+  // Check-list des biais (angles morts)
+  h += `<details class="bias"${(s.bias && Object.values(s.bias).some(Boolean)) ? " open" : ""}><summary>🧭 Check-list des biais (angles morts)</summary><div class="bias-list">`;
+  for (const [bk2, label, q] of L.STUDY_BIASES)
+    h += `<label class="bias-item"><input type="checkbox" data-bias="${bk2}"${(s.bias && s.bias[bk2]) ? " checked" : ""}> <b>${esc(label)}</b> — <span class="muted">${esc(q)}</span></label>`;
+  h += `</div></details>`;
+  h += `<p id="sheetSaved" class="small muted" aria-live="polite">${L.hasSheetContent(s) && s.u ? "Enregistré le " + new Date(s.u).toLocaleString("fr-FR") : ""}</p>`;
+
+  const saved = Object.keys(STUDY).filter((k) => L.hasSheetContent(STUDY[k]));
   if (saved.length) {
     saved.sort((a, b) => { const A = a.split("."), B = b.split("."); return (A[0] - B[0]) || (A[1] - B[1]); });
     h += `<div class="section-label">Mes fiches <span class="pill">${saved.length}</span></div><div class="results">`;
     for (const k of saved) { const [b2, c2] = k.split(".").map(Number); const bb = bible().books[b2]; if (!bb) continue;
-      h += `<button class="result" data-sheet="${b2}.${c2}"><span class="ref">${esc(bb.n)} ${c2 + 1}</span></button>`; }
+      const nm = (TPL[STUDY[k].tpl] || {}).name || "";
+      h += `<button class="result" data-sheet="${b2}.${c2}"><span class="ref">${esc(bb.n)} ${c2 + 1}</span><span class="muted small">${esc(nm)}</span></button>`; }
     h += `</div>`;
   }
   body.innerHTML = h;
   $("#sheetGo").onclick = () => goTo(bi, ci, 1);
+  body.querySelectorAll("[data-tpl]").forEach((el) => el.onclick = () => { studyState.tpl = el.dataset.tpl; showStudy("sheet", { bi, ci }); });
   body.querySelectorAll("textarea[data-k]").forEach((ta) => ta.addEventListener("input", () => {
     clearTimeout(sheetTimer); sheetTimer = setTimeout(() => {
-      const cur = STUDY[key] || {}; cur[ta.dataset.k] = ta.value.trim();
-      let any = false; for (const f of ["o", "i", "a", "p"]) { if (cur[f]) any = true; else delete cur[f]; }
-      if (any) { cur.u = Date.now(); STUDY[key] = cur; } else delete STUDY[key];
-      saveStudy(); const sv = $("#sheetSaved"); if (sv) sv.textContent = any ? "Enregistré le " + new Date().toLocaleString("fr-FR") : "";
+      const cur = STUDY[key] || {}; if (ta.value.trim()) cur[ta.dataset.k] = ta.value.trim(); else delete cur[ta.dataset.k];
+      STUDY[key] = cur; persist();
     }, 400);
   }));
-  body.querySelectorAll("[data-sheet]").forEach((el) => el.onclick = () => { const [b2, c2] = el.dataset.sheet.split(".").map(Number); showStudy("sheet", { bi: b2, ci: c2 }); });
+  body.querySelectorAll("[data-bias]").forEach((cb) => cb.addEventListener("change", () => {
+    const cur = STUDY[key] || {}; cur.bias = cur.bias || {};
+    if (cb.checked) cur.bias[cb.dataset.bias] = 1; else delete cur.bias[cb.dataset.bias];
+    if (!Object.keys(cur.bias).length) delete cur.bias;
+    STUDY[key] = cur; persist();
+  }));
+  body.querySelectorAll("[data-sheet]").forEach((el) => el.onclick = () => { const [b2, c2] = el.dataset.sheet.split(".").map(Number); studyState.tpl = (STUDY[b2 + "." + c2] || {}).tpl || studyState.tpl; showStudy("sheet", { bi: b2, ci: c2 }); });
 }
 
 /* --- 3) Étude thématique (tags libres) --- */

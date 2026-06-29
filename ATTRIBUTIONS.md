@@ -22,6 +22,7 @@ Chaque source conserve sa licence.
 | KJV taguée Strong (interlinéaire) | Domaine public (KJV) | [1John419/kjs](https://github.com/1John419/kjs) |
 | **Définitions Strong en français** | Traduction **automatique** de notre fait, à partir des définitions anglaises ci-dessus (domaine public) | Générée par `tools/translate_strong.py` |
 | **Index thématique Nave** (Nave's Topical Bible) | **CC-BY 4.0** | [BradyStephenson/bible-data](https://github.com/BradyStephenson/bible-data) (`NavesTopicalDictionary.csv`) |
+| **Introductions par livre** (auteur, datation) | **CC-BY 4.0** | BradyStephenson/bible-data (`BibleData-Book.csv`) ; genre déduit par index, libellés FR de notre fait |
 
 > Les dictionnaires de James Strong (1890/1894) et la King James Version sont dans le
 > domaine public. Les numérisations sous CC-BY / CC-BY-SA imposent l'**attribution**

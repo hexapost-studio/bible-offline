@@ -125,8 +125,57 @@
     return out;
   }
 
+  /* ---------- fiche d'étude : gabarits (templates) ---------- */
+  // Chaque gabarit = liste de [clé, libellé, indication]. Les clés sont UNIQUES entre
+  // gabarits pour qu'ils coexistent dans une même fiche (STUDY["bi.ci"]).
+  const STUDY_TEMPLATES = {
+    oia: { name: "Inductive (O/I/A)", fields: [
+      ["o", "👁 Observation", "Que dit le texte ? (faits, contexte, répétitions, mots-clés)"],
+      ["i", "💡 Interprétation", "Que signifie-t-il ? (sens, message central, à qui, pourquoi)"],
+      ["a", "🎯 Application", "Comment l'appliquer concrètement à ma vie ?"],
+      ["p", "🙏 Prière", "Ma réponse à Dieu à partir de ce passage"],
+    ] },
+    c3: { name: "3C (express)", fields: [
+      ["c1", "🧭 Contexte", "Où, quand, qui, dans quelle situation ? Ce qui précède et suit."],
+      ["c2", "📖 Contenu", "Que dit précisément le texte ? Idées et mots-clés."],
+      ["c3", "🔗 Connexion", "Lien avec le reste de l'Écriture et avec ma vie."],
+    ] },
+    s7: { name: "7 étapes (approfondi)", fields: [
+      ["s1", "1 · Contexte historique & littéraire", "Auteur, destinataire, époque, genre littéraire."],
+      ["s2", "2 · Exégèse linguistique", "Mots-clés en hébreu/grec, nuances, jeux de mots."],
+      ["s3", "3 · Narratif & rhétorique", "Structure, point de vue, dialogues et silences."],
+      ["s4", "4 · Intertextualité & trajectoire", "Échos ailleurs dans l'Écriture, figures, évolution."],
+      ["s5", "5 · Histoire de la réception", "Lectures savantes, traditions, liturgie, arts."],
+      ["s6", "6 · Silences & présupposés", "Non-dits, voix absentes, tensions, contradictions."],
+      ["s7", "7 · Synthèse existentielle & éthique", "Ce que cela change ; tension maintenue ; pour la communauté."],
+    ] },
+  };
+  // Check-list des biais (angles morts) à surveiller après analyse.
+  const STUDY_BIASES = [
+    ["harmonisation", "Harmonisation", "Ai-je gommé des contradictions pour rendre le texte plus « cohérent » ?"],
+    ["spiritualisation", "Spiritualisation", "Ai-je spiritualisé une réalité charnelle ou un trauma ?"],
+    ["occident", "Occidentalo-centrage", "Ai-je consulté des lectures non-occidentales (Afrique, Asie, Amérique latine) ?"],
+    ["finalisme", "Finalisme", "Ai-je cherché un sens absolu là où il y a peut-être un vestige/accident ?"],
+    ["materiel", "Angle matériel", "Ai-je regardé les enjeux économiques, fonciers, sociaux du texte ?"],
+    ["omniscience", "Omniscience", "Ai-je présenté ma lecture comme infaillible plutôt que comme un choix ?"],
+  ];
+  // Toutes les clés de champ (union des gabarits) — sert à détecter une fiche non vide.
+  function studyFieldKeys() {
+    const out = [];
+    for (const t in STUDY_TEMPLATES) for (const f of STUDY_TEMPLATES[t].fields) out.push(f[0]);
+    return out;
+  }
+  // Une fiche a-t-elle du contenu ? (champs remplis ou biais coché)
+  function hasSheetContent(s) {
+    if (!s) return false;
+    for (const k of studyFieldKeys()) if (s[k]) return true;
+    if (s.bias) for (const b in s.bias) if (s.bias[b]) return true;
+    return false;
+  }
+
   const api = { esc, testament, strongLang, formatRef, buildPlan, dayOfYear, verseOfDay, VOTD, ttsLang,
-    concordance, topicGroups, parseTags, OT_COUNT, NT_COUNT };
+    concordance, topicGroups, parseTags, STUDY_TEMPLATES, STUDY_BIASES, studyFieldKeys, hasSheetContent,
+    OT_COUNT, NT_COUNT };
 
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.Lib = api;

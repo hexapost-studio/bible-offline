@@ -94,3 +94,13 @@ test("intégrité Strong FR : numéros connus du dictionnaire (si data/strong_fr
   for (const num in FR) { if (!STRONG[num]) bad++; if (typeof FR[num] !== "string") bad++; }
   assert.strictEqual(bad, 0, "entrées Strong FR invalides : " + bad);
 });
+
+test("intégrité intros : 66 livres avec genre (si data/intros.js généré)", { skip: !has("intros.js") ? "intros.js non généré" : false }, () => {
+  require("../data/intros.js");
+  const I = window.INTROS;
+  assert.strictEqual(Object.keys(I).length, 66, "intros : 66 livres attendus");
+  for (let bi = 0; bi < 66; bi++) {
+    assert.ok(I[String(bi)], "intro manquante pour le livre " + bi);
+    assert.ok(I[String(bi)].genre, "genre manquant pour le livre " + bi);
+  }
+});
