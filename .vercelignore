@@ -1,0 +1,8 @@
+# Ne pas déployer ce qui n'est pas nécessaire au site en production
+tests/
+tools/
+proxy/
+node_modules/
+.git/
+.claude/
+*.log

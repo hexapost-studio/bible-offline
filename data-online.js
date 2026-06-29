@@ -35,8 +35,19 @@
     "JHN","ACT","ROM","1CO","2CO","GAL","EPH","PHP","COL","1TH","2TH","1TI","2TI","TIT","PHM",
     "HEB","JAS","1PE","2PE","1JN","2JN","3JN","JUD","REV"];
 
+  // Proxy par défaut : si l'app est servie depuis un déploiement avec fonction serverless
+  // sur la MÊME origine (Vercel), on utilise automatiquement /api/bible. Sur GitHub Pages
+  // (pas de serverless) ou en local, on laisse vide (l'utilisateur peut renseigner un proxy).
+  function defaultProxy() {
+    if (typeof location === "undefined" || !location.protocol.startsWith("http")) return "";
+    const h = location.hostname || "";
+    if (h.endsWith("github.io") || h === "localhost" || h === "127.0.0.1") return "";
+    return location.origin + "/api/bible";
+  }
+
   let KEY = localStorage.getItem("bible_apikey") || "";
-  let PROXY = localStorage.getItem("bible_apiproxy") || "";
+  const storedProxy = localStorage.getItem("bible_apiproxy");
+  let PROXY = storedProxy != null ? storedProxy : defaultProxy();
   let AVAIL = {}; // key -> { id, name, copyright }
 
   const setKey = (k) => { KEY = (k || "").trim(); localStorage.setItem("bible_apikey", KEY); };
