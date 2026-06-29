@@ -258,13 +258,22 @@ function stopAudio() {
   speaking = false; const b = $("#play"); if (b) b.textContent = "🔊 Écouter";
   document.querySelectorAll(".verse.speaking").forEach((e) => e.classList.remove("speaking"));
 }
-function toggleAudio() {
+// fromV (optionnel) : numéro de verset où démarrer la lecture (sinon début du chapitre).
+function toggleAudio(fromV) {
   if (isOnline(st.v)) return; // texte sous droits : lecture audio interdite par la licence
   if (!("speechSynthesis" in window)) { alert("La lecture vocale n'est pas disponible sur ce navigateur."); return; }
-  if (speaking) { stopAudio(); return; }
-  const ch = bible().books[st.b].c[st.c];
+  if (speaking && fromV == null) { stopAudio(); return; }
+  if (speaking) stopAudio(); // relance à partir du verset choisi
+  let ch = bible().books[st.b].c[st.c];
+  if (fromV != null) { const i = ch.findIndex((vs) => vs.v === fromV); if (i > 0) ch = ch.slice(i); }
   queue = ch.map((vs) => ({ v: vs.v, t: vs.t })); qi = 0; speaking = true;
-  $("#play").textContent = "⏹ Arrêter"; speakNext();
+  const b = $("#play"); if (b) b.textContent = "⏹ Arrêter"; speakNext();
+}
+// Démarre la lecture depuis un verset précis (appelé par le popover).
+function playFrom(bi, ci, v) {
+  if (isOnline(st.v)) { toast("Lecture audio indisponible pour une version en ligne."); return; }
+  if (bi !== st.b || ci !== st.c) { goTo(bi, ci, v).then(() => toggleAudio(v)); return; }
+  toggleAudio(v);
 }
 function speakNext() {
   if (!speaking || qi >= queue.length) { stopAudio(); return; }
@@ -303,6 +312,7 @@ pop.querySelectorAll("button").forEach((b) => {
     else if (a === "xref") { if (await guard(ensureXref())) showXref(t.bi, t.ci, t.v); }
     else if (a === "topic") { tagVerse(t.bi, t.ci, t.v); }
     else if (a === "trail") { startTrail(t.bi, t.ci, t.v); }
+    else if (a === "playfrom") { playFrom(t.bi, t.ci, t.v); }
   });
 });
 function refresh() { view === "favs" ? showFavs() : (st.cmp ? renderCompare() : render()); }
