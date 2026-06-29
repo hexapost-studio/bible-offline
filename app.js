@@ -14,7 +14,7 @@ const reader = $("#reader"), selV = $("#version"), selCV = $("#cmpVersion"),
 let st = JSON.parse(localStorage.getItem("bible_state") || "{}");
 st.v = ORDER.includes(st.v) ? st.v : "ls1910";
 st.cv = ORDER.includes(st.cv) && st.cv !== st.v ? st.cv : ORDER.find((k) => k !== st.v);
-st.b = Number.isInteger(st.b) ? st.b : 0;
+st.b = Number.isInteger(st.b) ? st.b : 39; // défaut : Matthieu (livres évangéliques mis en avant)
 st.c = Number.isInteger(st.c) ? st.c : 0;
 st.cmp = !!st.cmp;
 let HL = JSON.parse(localStorage.getItem("bible_highlights") || "{}");
@@ -146,7 +146,13 @@ function rebuildOnlineOptions() {
 rebuildOnlineOptions();
 if (isOnline(st.v) && !(O && O.isEnabled(st.v))) st.v = "ls1910";
 selV.value = st.v; selCV.value = st.cv;
-const fillBooks = () => { selB.innerHTML = ""; bible().books.forEach((bk, i) => selB.add(new Option(bk.n, i))); selB.value = st.b; };
+const fillBooks = () => {
+  selB.innerHTML = "";
+  const g1 = document.createElement("optgroup"); g1.label = "Évangiles & Actes";
+  const g2 = document.createElement("optgroup"); g2.label = "Annexes";
+  bible().books.forEach((bk, i) => (L.isEvangelical(i) ? g1 : g2).appendChild(new Option(bk.n, i)));
+  selB.appendChild(g1); selB.appendChild(g2); selB.value = st.b;
+};
 const fillChapters = () => { selC.innerHTML = ""; const n = bible().books[st.b].c.length; for (let i = 0; i < n; i++) selC.add(new Option("Chapitre " + (i + 1), i)); selC.value = st.c; };
 
 const hlClass = (bi, ci, v) => { const c = HL[keyOf(bi, ci, v)]; return c ? " hl" + c : ""; };
@@ -399,11 +405,16 @@ function showHome() {
       h += `<button class="card" data-bi="${bi}" data-ci="${ci}"><div class="t">${esc(b.n)} ${ci + 1}</div><div class="d">${esc(bible().name)}</div></button>`; }
     h += `</div>`;
   }
+  // Mise en avant : Évangiles & Actes ; le reste du canon en « Annexes » (repliées, toujours accessibles).
+  h += `<div class="section-label">Évangiles &amp; Actes</div><div class="grid">`;
+  bible().books.forEach((b, i) => { if (L.isEvangelical(i)) h += `<button class="book" data-bi="${i}">${esc(b.n)}</button>`; });
+  h += `</div>`;
+  h += `<details class="annexe"><summary>📚 Annexes — Ancien Testament &amp; autres livres du Nouveau</summary>`;
   h += `<div class="section-label">Ancien Testament</div><div class="grid">`;
   bible().books.forEach((b, i) => { if (L.testament(i) === "AT") h += `<button class="book" data-bi="${i}">${esc(b.n)}</button>`; });
-  h += `</div><div class="section-label">Nouveau Testament</div><div class="grid">`;
-  bible().books.forEach((b, i) => { if (L.testament(i) === "NT") h += `<button class="book" data-bi="${i}">${esc(b.n)}</button>`; });
-  h += `</div>`;
+  h += `</div><div class="section-label">Nouveau Testament (épîtres, Apocalypse…)</div><div class="grid">`;
+  bible().books.forEach((b, i) => { if (L.testament(i) === "NT" && !L.isEvangelical(i)) h += `<button class="book" data-bi="${i}">${esc(b.n)}</button>`; });
+  h += `</div></details>`;
   reader.innerHTML = h; reader.parentElement.scrollTop = 0; reader.focus();
   $("#votdGo").onclick = () => goTo(ref[0], ref[1], ref[2]);
   reader.querySelectorAll(".card").forEach((el) => el.onclick = () => goTo(+el.dataset.bi, +el.dataset.ci, 1));

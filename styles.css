@@ -162,6 +162,10 @@ mark { background:var(--hitmark); color:var(--txt); border-radius:3px; padding:0
 .bias-item input { flex:0 0 auto; margin-top:2px; }
 .bookintro { margin:0 0 var(--sp4); border:1px solid var(--line); border-radius:var(--radius); padding:var(--sp2) var(--sp3); }
 .bookintro > summary { cursor:pointer; color:var(--accent2); font-weight:600; }
+/* Annexes (accueil) : reste du canon, replié par défaut */
+.annexe { margin-top:var(--sp5); border-top:1px solid var(--line); padding-top:var(--sp3); }
+.annexe > summary { cursor:pointer; font-weight:700; color:var(--muted); padding:var(--sp2) 0; }
+.annexe[open] > summary { color:var(--txt); }
 /* Astuce première visite */
 .tip { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:90;
   width:min(92vw, 460px); background:var(--panel); border:1px solid var(--line);

@@ -14,6 +14,14 @@ test("testament classe AT (0..38) et NT (39..65)", () => {
   assert.strictEqual(L.testament(65), "NT");  // Apocalypse
 });
 
+test("isEvangelical : Évangiles + Actes (39..43), pas le reste", () => {
+  assert.deepStrictEqual(L.EVANGELICAL, [39, 40, 41, 42, 43]);
+  for (const bi of [39, 40, 41, 42, 43]) assert.ok(L.isEvangelical(bi), "manque " + bi);
+  assert.strictEqual(L.isEvangelical(0), false);   // Genèse (AT)
+  assert.strictEqual(L.isEvangelical(44), false);  // Romains (épître)
+  assert.strictEqual(L.isEvangelical(65), false);  // Apocalypse
+});
+
 test("strongLang : H = hébreu RTL, G = grec LTR", () => {
   assert.deepStrictEqual(L.strongLang("H157"), { lang: "he", dir: "rtl" });
   assert.deepStrictEqual(L.strongLang("G26"), { lang: "grc", dir: "ltr" });

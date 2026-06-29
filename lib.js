@@ -21,6 +21,11 @@
     return bookIndex < OT_COUNT ? "AT" : "NT";
   }
 
+  // Livres « évangéliques » mis en avant : Évangiles + Actes (index canonique 39..43).
+  // Le reste du canon est traité comme « Annexes » (toujours accessible).
+  const EVANGELICAL = [39, 40, 41, 42, 43];
+  function isEvangelical(bookIndex) { return EVANGELICAL.indexOf(bookIndex) !== -1; }
+
   function strongLang(num) {
     // H = hébreu (RTL), G = grec
     return num && num[0] === "H" ? { lang: "he", dir: "rtl" } : { lang: "grc", dir: "ltr" };
@@ -179,7 +184,7 @@
     return false;
   }
 
-  const api = { esc, fold, testament, strongLang, formatRef, buildPlan, dayOfYear, verseOfDay, VOTD, ttsLang,
+  const api = { esc, fold, testament, isEvangelical, EVANGELICAL, strongLang, formatRef, buildPlan, dayOfYear, verseOfDay, VOTD, ttsLang,
     concordance, topicGroups, parseTags, STUDY_TEMPLATES, STUDY_BIASES, studyFieldKeys, hasSheetContent,
     OT_COUNT, NT_COUNT };
 

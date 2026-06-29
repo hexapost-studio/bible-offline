@@ -14,7 +14,7 @@ HTML qui s'ouvre dans n'importe quel navigateur. Pensé selon une philosophie de
 | 🔊 | **Lecture audio** | Lit le chapitre à voix haute (synthèse vocale, hors-ligne), **vitesse réglable** et **départ depuis un verset choisi** — *traductions libres uniquement* |
 | ℹ️ | **Introduction par livre** | Repères de contexte en tête de livre : genre littéraire, auteur et datation (traditionnels) |
 | 🗓 | **Plan de lecture** | « Bible en 1 an », suivi de progression |
-| 🏠 | **Accueil** | Verset du jour + reprise de lecture + sélecteur de livres AT/NT |
+| 🏠 | **Accueil** | Verset du jour + reprise + **Évangiles & Actes mis en avant**, reste du canon en « Annexes » repliées |
 | 🔍 | **Recherche** plein-texte | Dans toute la traduction active, **insensible aux accents** (« esaie » trouve « Ésaïe ») |
 | ⇄ | **Comparaison** | Deux traductions côte à côte, versets alignés |
 | ★ | **Surlignages & notes** | 4 couleurs + notes par verset (stockés localement) |
